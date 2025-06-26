@@ -1,0 +1,331 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css?family=Inter:400,900,800');
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Main container */
+.main-container {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background-color: white;
+}
+
+/* Background image with blur */
+.background-image {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.bg-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.8;
+    filter: blur(4px);
+}
+
+/* Header styles */
+.header {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+}
+
+.header-main {
+    width: 100%;
+    height: 140px;
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: none;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+.header-stripe {
+    width: 100%;
+    height: 24px;
+    background-color: #05196a;
+    border: none;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Logo container */
+.logo-container {
+    position: absolute;
+    top: 14px;
+    left: 26px;
+    z-index: 20;
+    display: flex;
+    align-items: flex-start;
+}
+
+.logo {
+    object-fit: cover;
+}
+
+.logo-1 {
+    width: 89px;
+    height: 89px;
+    margin-top: 6px;
+}
+
+.logo-2 {
+    width: 110px;
+    height: 110px;
+    margin-left: 9px;
+}
+
+.logo-3 {
+    width: 89px;
+    height: 89px;
+    margin-left: 9px;
+    margin-top: 10px;
+}
+
+/* Content wrapper */
+.content-wrapper {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.content-container {
+    width: 100%;
+    max-width: 1400px;
+    position: relative;
+    transform: scale(0.75);
+    transform-origin: top;
+}
+
+/* Main title */
+.main-title {
+    position: absolute;
+    width: 100%;
+    top: 40px;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    color: #05196a;
+    font-size: 44px;
+    letter-spacing: 0;
+    line-height: normal;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Form container */
+.form-container {
+    position: absolute;
+    top: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+/* Input styles */
+.input-group {
+    position: relative;
+}
+
+.form-input {
+    width: 450px;
+    height: 58px;
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    padding: 0 24px;
+    font-size: 26px;
+    border: none;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.form-input::placeholder {
+    color: #838383;
+}
+
+.form-input:focus {
+    background-color: rgba(255, 255, 255, 0.98);
+    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.date-input {
+    color: #333;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.5);
+}
+
+/* Search button */
+.search-button {
+    width: 282px;
+    height: 77px;
+    margin-top: 42px;
+    background-color: #05196a;
+    border-radius: 24px;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    color: white;
+    font-size: 38px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-button:hover {
+    background-color: #041456;
+    transform: translateY(-2px);
+    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.3);
+}
+
+.search-button:active {
+    transform: translateY(0);
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    color: white;
+    font-size: 24px;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Modal styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.close-button {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 30px;
+    cursor: pointer;
+    color: #666;
+}
+
+.close-button:hover {
+    color: #000;
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .content-container {
+        transform: scale(0.6);
+    }
+    
+    .form-input {
+        width: 350px;
+        font-size: 20px;
+    }
+    
+    .search-button {
+        width: 220px;
+        height: 60px;
+        font-size: 28px;
+    }
+    
+    .main-title {
+        font-size: 32px;
+    }
+}
+
+@media (max-width: 480px) {
+    .content-container {
+        transform: scale(0.5);
+    }
+    
+    .logo-container {
+        left: 10px;
+        top: 10px;
+    }
+    
+    .logo-1, .logo-3 {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .logo-2 {
+        width: 75px;
+        height: 75px;
+    }
+}

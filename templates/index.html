@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ospital ng Imus - Patient Search</title>
+    <link href="https://fonts.googleapis.com/css?family=Inter:400,900,800" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="main-container">
+        <!-- Full-width background image with blur -->
+        <div class="background-image">
+            <img src="{{ url_for('static', filename='images/hospital-background.png') }}" 
+                 alt="Hospital background" class="bg-img">
+        </div>
+
+        <!-- Header section -->
+        <header class="header">
+            <div class="header-main"></div>
+            <div class="header-stripe"></div>
+        </header>
+        
+        <!-- Logo images -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/Ph_seal_Imus.png') }}" 
+                 alt="Ph seal imus" class="logo logo-1">
+            <img src="{{ url_for('static', filename='images/imus-logo.jpg') }}" 
+                 alt="Imus logo" class="logo logo-2">
+            <img src="{{ url_for('static', filename='images/hospital-logo.jpg') }}" 
+                 alt="Hospital logo" class="logo logo-3">
+        </div>
+
+        <!-- Main content -->
+        <div class="content-wrapper">
+            <div class="content-container">
+                <!-- Main title -->
+                <h1 class="main-title">OSPITAL NG IMUS</h1>
+
+                <!-- Search form -->
+                <div class="form-container">
+                    <form id="searchForm" class="search-form">
+                        <!-- Text input fields -->
+                        {% for field in form_fields %}
+                        <div class="input-group">
+                            <input type="text" 
+                                   id="{{ field.id }}" 
+                                   name="{{ field.id }}"
+                                   class="form-input" 
+                                   placeholder="{{ field.placeholder }}"
+                                   {% if field.id in ['lastname', 'firstname'] %}required{% endif %}>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Birthday field -->
+                        <div class="input-group">
+                            <input type="date" 
+                                   id="birthday" 
+                                   name="birthday"
+                                   class="form-input date-input" 
+                                   placeholder="Select birthday">
+                        </div>
+
+                        <!-- Search button -->
+                        <button type="submit" class="search-button">
+                            SEARCH
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p>Searching...</p>
+    </div>
+
+    <!-- Results modal -->
+    <div id="resultsModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Search Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
