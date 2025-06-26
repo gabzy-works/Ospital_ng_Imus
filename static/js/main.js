@@ -59,16 +59,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to display search results
     function displayResults(data) {
         let html = '<div class="search-results">';
-        html += '<h3>Patient Search Results</h3>';
-        html += '<div class="result-item">';
-        html += '<p><strong>Last Name:</strong> ' + (data.lastname || 'N/A') + '</p>';
-        html += '<p><strong>First Name:</strong> ' + (data.firstname || 'N/A') + '</p>';
-        html += '<p><strong>Middle Name:</strong> ' + (data.middlename || 'N/A') + '</p>';
-        html += '<p><strong>Suffix:</strong> ' + (data.suffix || 'N/A') + '</p>';
-        html += '<p><strong>Birthday:</strong> ' + (data.birthday || 'N/A') + '</p>';
+        
+        if (data.patients && data.patients.length > 0) {
+            html += '<h3>Patient Search Results (' + data.patients.length + ' found)</h3>';
+            
+            data.patients.forEach(function(patient, index) {
+                html += '<div class="result-item">';
+                html += '<h4>Patient #' + (index + 1) + '</h4>';
+                html += '<div class="patient-info">';
+                html += '<p><strong>Last Name:</strong> ' + (patient.lastname || 'N/A') + '</p>';
+                html += '<p><strong>First Name:</strong> ' + (patient.firstname || 'N/A') + '</p>';
+                html += '<p><strong>Middle Name:</strong> ' + (patient.middlename || 'N/A') + '</p>';
+                html += '<p><strong>Suffix:</strong> ' + (patient.suffix || 'N/A') + '</p>';
+                html += '<p><strong>Birthday:</strong> ' + (patient.birthday || 'N/A') + '</p>';
+                html += '<p><strong>Patient ID:</strong> ' + patient.id + '</p>';
+                html += '</div>';
+                html += '</div>';
+            });
+        } else {
+            html += '<h3>No Patients Found</h3>';
+            html += '<div class="result-item">';
+            html += '<p>No patients match your search criteria. Please try different search terms.</p>';
+            html += '</div>';
+        }
+        
+        html += '<div class="search-info">';
+        html += '<h4>Search Criteria Used:</h4>';
+        html += '<p><strong>Last Name:</strong> ' + (data.search_criteria.lastname || 'Not specified') + '</p>';
+        html += '<p><strong>First Name:</strong> ' + (data.search_criteria.firstname || 'Not specified') + '</p>';
+        html += '<p><strong>Middle Name:</strong> ' + (data.search_criteria.middlename || 'Not specified') + '</p>';
+        html += '<p><strong>Suffix:</strong> ' + (data.search_criteria.suffix || 'Not specified') + '</p>';
+        html += '<p><strong>Birthday:</strong> ' + (data.search_criteria.birthday || 'Not specified') + '</p>';
         html += '<p><strong>Search Time:</strong> ' + data.search_time + '</p>';
         html += '</div>';
-        html += '<p class="note"><em>Note: This is a demo. In a real application, this would search the patient database.</em></p>';
         html += '</div>';
         
         resultsContent.innerHTML = html;
@@ -94,6 +117,8 @@ const style = document.createElement('style');
 style.textContent = `
     .search-results {
         font-family: 'Inter', sans-serif;
+        max-height: 70vh;
+        overflow-y: auto;
     }
     
     .search-results h3 {
@@ -101,6 +126,7 @@ style.textContent = `
         margin-bottom: 20px;
         font-size: 24px;
         font-weight: 800;
+        text-align: center;
     }
     
     .result-item {
@@ -108,23 +134,54 @@ style.textContent = `
         padding: 20px;
         border-radius: 10px;
         margin-bottom: 15px;
+        border-left: 4px solid #05196a;
     }
     
-    .result-item p {
+    .result-item h4 {
+        color: #05196a;
+        margin-bottom: 15px;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    
+    .patient-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .patient-info p {
         margin-bottom: 8px;
-        font-size: 16px;
+        font-size: 14px;
     }
     
-    .result-item strong {
+    .patient-info strong {
         color: #05196a;
         font-weight: 600;
     }
     
-    .note {
-        font-style: italic;
-        color: #666;
-        text-align: center;
+    .search-info {
+        background-color: #e9ecef;
+        padding: 15px;
+        border-radius: 8px;
         margin-top: 20px;
+    }
+    
+    .search-info h4 {
+        color: #05196a;
+        margin-bottom: 10px;
+        font-size: 16px;
+    }
+    
+    .search-info p {
+        font-size: 12px;
+        margin-bottom: 5px;
+        color: #666;
+    }
+    
+    .modal-content {
+        max-width: 800px;
+        width: 95%;
     }
 `;
 document.head.appendChild(style);

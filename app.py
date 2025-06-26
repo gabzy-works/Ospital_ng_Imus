@@ -1,11 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 import os
+from database import init_database, search_patients, get_all_patients
 
 app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
+
+# Initialize database on startup
+init_database()
 
 # Form field data for the hospital form
 FORM_FIELDS = [
@@ -30,36 +34,68 @@ def search_patient():
     suffix = request.form.get('suffix', '').strip()
     birthday = request.form.get('birthday', '').strip()
     
-    # Basic validation
-    if not lastname or not firstname:
+    # Basic validation - at least one field must be provided
+    if not any([lastname, firstname, middlename, suffix, birthday]):
         return jsonify({
             'success': False,
-            'message': 'Lastname and Firstname are required fields'
+            'message': 'Please provide at least one search criteria'
         }), 400
     
-    # Here you would typically search your database
-    # For now, we'll just return the search parameters
-    search_data = {
-        'lastname': lastname,
-        'firstname': firstname,
-        'middlename': middlename,
-        'suffix': suffix,
-        'birthday': birthday,
-        'search_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    
-    return jsonify({
-        'success': True,
-        'message': 'Search completed successfully',
-        'data': search_data
-    })
+    try:
+        # Search database for matching patients
+        patients = search_patients(
+            lastname=lastname if lastname else None,
+            firstname=firstname if firstname else None,
+            middlename=middlename if middlename else None,
+            suffix=suffix if suffix else None,
+            birthday=birthday if birthday else None
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'Found {len(patients)} patient(s)',
+            'data': {
+                'patients': patients,
+                'search_criteria': {
+                    'lastname': lastname,
+                    'firstname': firstname,
+                    'middlename': middlename,
+                    'suffix': suffix,
+                    'birthday': birthday
+                },
+                'search_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Database error: {str(e)}'
+        }), 500
+
+@app.route('/patients')
+def list_patients():
+    """API endpoint to get all patients (for testing)"""
+    try:
+        patients = get_all_patients()
+        return jsonify({
+            'success': True,
+            'data': patients,
+            'count': len(patients)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Database error: {str(e)}'
+        }), 500
 
 @app.route('/health')
 def health_check():
     """Simple health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat(),
+        'database': 'connected'
     })
 
 if __name__ == '__main__':
@@ -68,6 +104,7 @@ if __name__ == '__main__':
     os.makedirs('static/js', exist_ok=True)
     os.makedirs('static/images', exist_ok=True)
     os.makedirs('templates', exist_ok=True)
+    os.makedirs('data', exist_ok=True)
     
     # Run the Flask application
     app.run(debug=True, host='0.0.0.0', port=5000)
