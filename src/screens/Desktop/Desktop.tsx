@@ -47,11 +47,11 @@ export const Desktop = (): JSX.Element => {
       <div className="flex flex-row justify-center w-full">
         <div className="bg-white w-full max-w-[1400px] relative scale-75 origin-top">
           <div className="absolute w-full h-full top-0 left-0">
-            {/* Background image */}
+            {/* Background image with 80% opacity */}
             <img
-              className="absolute w-full h-[calc(100vh-164px)] top-0 left-0 object-cover"
+              className="absolute w-full h-[calc(100vh-164px)] top-0 left-0 object-cover opacity-80"
               alt="Hospital background"
-              src="/screenshot--1--1.png"
+              src="/Screenshot (1).png"
             />
 
             {/* Main title - centered */}
