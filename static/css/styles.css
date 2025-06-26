@@ -23,7 +23,7 @@ body {
     background-color: white;
 }
 
-/* Background image with blur */
+/* Background image with blur - Full width and height */
 .background-image {
     position: fixed;
     top: 0;
@@ -38,7 +38,7 @@ body {
     height: 100%;
     object-fit: cover;
     opacity: 0.8;
-    filter: blur(4px);
+    filter: blur(8px); /* 60% blur effect */
 }
 
 /* Header styles */
