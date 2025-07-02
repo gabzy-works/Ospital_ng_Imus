@@ -17,6 +17,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get form data
         const formData = new FormData(searchForm);
         
+        // Ensure birthday is in YYYY-MM-DD format only if provided
+        const birthdayInput = searchForm.querySelector('#birthday');
+        if (birthdayInput && birthdayInput.value) {
+            const date = new Date(birthdayInput.value);
+            if (!isNaN(date.getTime())) {
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                const formatted = `${yyyy}-${mm}-${dd}`;
+                formData.set('birthday', formatted);
+            }
+        }
+        
         // Send AJAX request to Flask backend
         fetch('/search', {
             method: 'POST',
@@ -66,13 +79,19 @@ document.addEventListener('DOMContentLoaded', function() {
             data.patients.forEach(function(patient, index) {
                 html += '<div class="result-item">';
                 html += '<h4>Patient #' + (index + 1) + '</h4>';
-                html += '<div class="patient-info">';
+                html += '<div class="patient-info-flex">';
+                html += '<div class="patient-photo-col">';
+                html += '<img src="/Patient ID sample.png" alt="Patient ID" class="patient-photo" />';
+                html += '</div>';
+                html += '<div class="patient-details-col">';
                 html += '<p><strong>Last Name:</strong> ' + (patient.lastname || 'N/A') + '</p>';
                 html += '<p><strong>First Name:</strong> ' + (patient.firstname || 'N/A') + '</p>';
                 html += '<p><strong>Middle Name:</strong> ' + (patient.middlename || 'N/A') + '</p>';
                 html += '<p><strong>Suffix:</strong> ' + (patient.suffix || 'N/A') + '</p>';
                 html += '<p><strong>Birthday:</strong> ' + (patient.birthday || 'N/A') + '</p>';
-                html += '<p><strong>Patient ID:</strong> ' + patient.id + '</p>';
+                html += '<p><strong>Patient ID:</strong> ' + (patient.id || 'N/A') + '</p>';
+                html += '<p><strong>Address:</strong> ' + (patient.address || 'N/A') + '</p>';
+                html += '</div>';
                 html += '</div>';
                 html += '</div>';
             });
@@ -144,18 +163,41 @@ style.textContent = `
         font-weight: 700;
     }
     
-    .patient-info {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
+    /* FLEX LAYOUT for patient info */
+    .patient-info-flex {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 24px;
     }
-    
-    .patient-info p {
+    .patient-photo-col {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .patient-photo {
+        width: 80px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
         margin-bottom: 8px;
-        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        background: #fff;
+        border: 2px solid #e0e0e0;
     }
-    
-    .patient-info strong {
+    .patient-details-col {
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+    .patient-details-col p {
+        margin-bottom: 0;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .patient-details-col strong {
         color: #05196a;
         font-weight: 600;
     }

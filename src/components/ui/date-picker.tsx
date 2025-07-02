@@ -63,8 +63,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <CalendarIcon className="w-[55px] h-[55px] ml-[22px] text-[#838383] flex-shrink-0" />
-        <span className="ml-[16px] text-[32px] text-[#838383] flex-1">
+        <CalendarIcon className="w-5 h-5 ml-2 text-[#838383] flex-shrink-0" />
+        <span className="ml-2 text-[14px] text-[#838383] flex-1">
           {value ? formatDate(value) : placeholder}
         </span>
       </div>

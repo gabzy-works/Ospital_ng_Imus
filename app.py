@@ -16,7 +16,7 @@ FORM_FIELDS = [
     {"id": "lastname", "label": "Lastname", "placeholder": "Enter lastname"},
     {"id": "firstname", "label": "Firstname", "placeholder": "Enter firstname"},
     {"id": "middlename", "label": "Middlename", "placeholder": "Enter middlename"},
-    {"id": "suffix", "label": "Suffix (If Applicable)", "placeholder": "Enter suffix (if applicable)"},
+    {"id": "suffix", "label": "Suffix (Optional)", "placeholder": "Enter suffix (optional)"},
 ]
 
 @app.route('/')
@@ -31,26 +31,27 @@ def search_patient():
     lastname = request.form.get('lastname', '').strip()
     firstname = request.form.get('firstname', '').strip()
     middlename = request.form.get('middlename', '').strip()
-    suffix = request.form.get('suffix', '').strip()
     birthday = request.form.get('birthday', '').strip()
-    
-    # Basic validation - at least one field must be provided
-    if not any([lastname, firstname, middlename, suffix, birthday]):
+    # Debug: print received values
+    print(f"Received search: lastname='{lastname}', firstname='{firstname}', middlename='{middlename}', birthday='{birthday}'")
+
+    # Validate that at least lastname, firstname, and middlename are provided
+    if not (lastname and firstname and middlename):
         return jsonify({
             'success': False,
-            'message': 'Please provide at least one search criteria'
+            'message': 'Please provide lastname, firstname, and middlename for search.'
         }), 400
-    
+
     try:
-        # Search database for matching patients
+        # Debug: print parameters to be used for search
+        print(f"Searching with: lastname={lastname}, firstname={firstname}, middlename={middlename}, birthday={birthday if birthday else None}")
+        # Search database for matching patients (birthday is optional)
         patients = search_patients(
-            lastname=lastname if lastname else None,
-            firstname=firstname if firstname else None,
-            middlename=middlename if middlename else None,
-            suffix=suffix if suffix else None,
+            lastname=lastname,
+            firstname=firstname,
+            middlename=middlename,
             birthday=birthday if birthday else None
         )
-        
         return jsonify({
             'success': True,
             'message': f'Found {len(patients)} patient(s)',
@@ -60,13 +61,11 @@ def search_patient():
                     'lastname': lastname,
                     'firstname': firstname,
                     'middlename': middlename,
-                    'suffix': suffix,
                     'birthday': birthday
                 },
                 'search_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         })
-        
     except Exception as e:
         return jsonify({
             'success': False,

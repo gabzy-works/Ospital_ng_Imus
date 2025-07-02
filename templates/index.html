@@ -48,7 +48,7 @@
                                    name="{{ field.id }}"
                                    class="form-input" 
                                    placeholder="{{ field.placeholder }}"
-                                   {% if field.id in ['lastname', 'firstname'] %}required{% endif %}>
+                                   {% if field.id == 'lastname' %}required{% endif %}>
                         </div>
                         {% endfor %}
 
@@ -58,7 +58,7 @@
                                    id="birthday" 
                                    name="birthday"
                                    class="form-input date-input" 
-                                   placeholder="Select birthday">
+                                   placeholder="Select birthday (required)">
                         </div>
 
                         <!-- Search button -->
