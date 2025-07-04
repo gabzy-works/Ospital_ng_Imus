@@ -10,55 +10,78 @@ def init_database():
     
     # Connect to SQLite database
     conn = sqlite3.connect('data/patients.db')
-    if os.path.exists('schema.sql'):
-        with open('schema.sql', 'r') as f:
-            conn.executescript(f.read())
-    else:
-        # fallback to old table creation
-        cursor = conn.cursor()
+    cursor = conn.cursor()
+    
+    # Create patients table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lastname TEXT NOT NULL,
+            firstname TEXT NOT NULL,
+            middlename TEXT,
+            suffix TEXT,
+            birthday DATE NOT NULL,
+            address TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_new INTEGER DEFAULT 1
+        )
+    ''')
+    
+    # Create appointments table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id INTEGER NOT NULL,
+            appointment_date DATE NOT NULL,
+            type TEXT DEFAULT 'Consultation',
+            reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (patient_id) REFERENCES patients (id)
+        )
+    ''')
+    
+    # Check if patients table is empty (to avoid duplicate data)
+    cursor.execute('SELECT COUNT(*) FROM patients')
+    count = cursor.fetchone()[0]
+    
+    if count == 0:
+        # Insert dummy patient data with IDs
+        dummy_patients = [
+            (1, 'Santos', 'Maria', 'Cruz', None, '1985-03-15', '123 Rizal St., Imus, Cavite'),
+            (2, 'Santos', 'Shayne', 'Cruz', None, '1985-05-15', '456 Mabini St., Imus, Cavite'),
+            (3, 'Garcia', 'Juan', 'Dela Cruz', 'Jr.', '1990-07-22', '789 Bonifacio Ave., Bacoor, Cavite'),
+            (4, 'Reyes', 'Ana', 'Bautista', None, '1978-11-08', '321 Aguinaldo Hwy., Dasmariñas, Cavite'),
+            (5, 'Gonzales', 'Pedro', 'Martinez', 'Sr.', '1965-01-30', '654 P. Burgos St., Imus, Cavite'),
+            (6, 'Lopez', 'Carmen', 'Villanueva', None, '1992-09-12', '987 Gen. Trias Dr., Gen. Trias, Cavite'),
+            (7, 'Mendoza', 'Roberto', 'Fernandez', 'III', '1988-05-18', '159 Molino Blvd., Bacoor, Cavite'),
+            (8, 'Torres', 'Luz', 'Aquino', None, '1975-12-03', '753 Salitran Rd., Dasmariñas, Cavite'),
+            (9, 'Flores', 'Miguel', 'Ramos', 'Jr.', '1983-08-25', '852 Palico Rd., Imus, Cavite'),
+            (10, 'Morales', 'Rosa', 'Castillo', None, '1995-04-07', '951 Anabu Rd., Imus, Cavite'),
+            (11, 'Rivera', 'Carlos', 'Jimenez', None, '1970-10-14', '357 Tanzang Luma, Imus, Cavite')
+        ]
         
-        # Create patients table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS patients (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                lastname TEXT NOT NULL,
-                firstname TEXT NOT NULL,
-                middlename TEXT,
-                suffix TEXT,
-                birthday DATE NOT NULL,
-                address TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_new INTEGER DEFAULT 1
-            )
-        ''')
+        cursor.executemany('''
+            INSERT INTO patients (id, lastname, firstname, middlename, suffix, birthday, address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', dummy_patients)
         
-        # Check if table is empty (to avoid duplicate data)
-        cursor.execute('SELECT COUNT(*) FROM patients')
-        count = cursor.fetchone()[0]
+        # Insert some dummy appointments
+        dummy_appointments = [
+            (1, '2025-02-15', 'Consultation', 'Regular checkup'),
+            (1, '2025-03-01', 'Laboratory', 'Blood test'),
+            (2, '2025-02-20', 'Follow-up', 'Post-surgery checkup'),
+            (3, '2025-02-25', 'Imaging', 'X-ray examination'),
+            (4, '2025-03-05', 'Vaccination', 'Annual flu shot'),
+        ]
         
-        if count == 0:
-            # Insert dummy patient data
-            dummy_patients = [
-                ('Santos', 'Maria', 'Cruz', None, '1985-03-15', '123 Rizal St., Imus, Cavite'),
-                ('Santos', 'Shayne', 'Cruz', None, '1985-05-15', '456 Mabini St., Imus, Cavite'),
-                ('Garcia', 'Juan', 'Dela Cruz', 'Jr.', '1990-07-22', '789 Bonifacio Ave., Bacoor, Cavite'),
-                ('Reyes', 'Ana', 'Bautista', None, '1978-11-08', '321 Aguinaldo Hwy., Dasmariñas, Cavite'),
-                ('Gonzales', 'Pedro', 'Martinez', 'Sr.', '1965-01-30', '654 P. Burgos St., Imus, Cavite'),
-                ('Lopez', 'Carmen', 'Villanueva', None, '1992-09-12', '987 Gen. Trias Dr., Gen. Trias, Cavite'),
-                ('Mendoza', 'Roberto', 'Fernandez', 'III', '1988-05-18', '159 Molino Blvd., Bacoor, Cavite'),
-                ('Torres', 'Luz', 'Aquino', None, '1975-12-03', '753 Salitran Rd., Dasmariñas, Cavite'),
-                ('Flores', 'Miguel', 'Ramos', 'Jr.', '1983-08-25', '852 Palico Rd., Imus, Cavite'),
-                ('Morales', 'Rosa', 'Castillo', None, '1995-04-07', '951 Anabu Rd., Imus, Cavite'),
-                ('Rivera', 'Carlos', 'Jimenez', None, '1970-10-14', '357 Tanzang Luma, Imus, Cavite')
-            ]
-            
-            cursor.executemany('''
-                INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', dummy_patients)
-            
-            print(f"Inserted {len(dummy_patients)} dummy patient records")
+        cursor.executemany('''
+            INSERT INTO appointments (patient_id, appointment_date, type, reason)
+            VALUES (?, ?, ?, ?)
+        ''', dummy_appointments)
+        
+        print(f"Inserted {len(dummy_patients)} dummy patient records")
+        print(f"Inserted {len(dummy_appointments)} dummy appointment records")
     
     # Commit changes and close connection
     conn.commit()

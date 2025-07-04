@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { DatePicker } from "../../components/ui/date-picker";
+import { AppointmentDashboard } from "../AppointmentDashboard";
 
 export const Desktop = (): JSX.Element => {
   const [birthday, setBirthday] = useState<Date | undefined>();
@@ -37,6 +38,8 @@ export const Desktop = (): JSX.Element => {
   });
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
+  const [showAppointmentDashboard, setShowAppointmentDashboard] = useState(false);
+  const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState<any>(null);
 
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
   const months = [
@@ -54,17 +57,17 @@ export const Desktop = (): JSX.Element => {
   ];
 
   const knownPatients = [
-    { lastname: "Santos", firstname: "Maria", middlename: "Cruz", suffix: null, birthday: "1985-03-15", address: "123 Rizal St., Imus, Cavite" },
-    { lastname: "Santos", firstname: "Shayne", middlename: "Cruz", suffix: null, birthday: "1985-05-15", address: "456 Mabini St., Imus, Cavite" },
-    { lastname: "Garcia", firstname: "Juan", middlename: "Dela Cruz", suffix: "Jr.", birthday: "1990-07-22", address: "789 Bonifacio Ave., Bacoor, Cavite" },
-    { lastname: "Reyes", firstname: "Ana", middlename: "Bautista", suffix: null, birthday: "1978-11-08", address: "321 Aguinaldo Hwy., Dasmariñas, Cavite" },
-    { lastname: "Gonzales", firstname: "Pedro", middlename: "Martinez", suffix: "Sr.", birthday: "1965-01-30", address: "654 P. Burgos St., Imus, Cavite" },
-    { lastname: "Lopez", firstname: "Carmen", middlename: "Villanueva", suffix: null, birthday: "1992-09-12", address: "987 Gen. Trias Dr., Gen. Trias, Cavite" },
-    { lastname: "Mendoza", firstname: "Roberto", middlename: "Fernandez", suffix: "III", birthday: "1988-05-18", address: "159 Molino Blvd., Bacoor, Cavite" },
-    { lastname: "Torres", firstname: "Luz", middlename: "Aquino", suffix: null, birthday: "1975-12-03", address: "753 Salitran Rd., Dasmariñas, Cavite" },
-    { lastname: "Flores", firstname: "Miguel", middlename: "Ramos", suffix: "Jr.", birthday: "1983-08-25", address: "852 Palico Rd., Imus, Cavite" },
-    { lastname: "Morales", firstname: "Rosa", middlename: "Castillo", suffix: null, birthday: "1995-04-07", address: "951 Anabu Rd., Imus, Cavite" },
-    { lastname: "Rivera", firstname: "Carlos", middlename: "Jimenez", suffix: null, birthday: "1970-10-14", address: "357 Tanzang Luma, Imus, Cavite" },
+    { id: 1, lastname: "Santos", firstname: "Maria", middlename: "Cruz", suffix: null, birthday: "1985-03-15", address: "123 Rizal St., Imus, Cavite" },
+    { id: 2, lastname: "Santos", firstname: "Shayne", middlename: "Cruz", suffix: null, birthday: "1985-05-15", address: "456 Mabini St., Imus, Cavite" },
+    { id: 3, lastname: "Garcia", firstname: "Juan", middlename: "Dela Cruz", suffix: "Jr.", birthday: "1990-07-22", address: "789 Bonifacio Ave., Bacoor, Cavite" },
+    { id: 4, lastname: "Reyes", firstname: "Ana", middlename: "Bautista", suffix: null, birthday: "1978-11-08", address: "321 Aguinaldo Hwy., Dasmariñas, Cavite" },
+    { id: 5, lastname: "Gonzales", firstname: "Pedro", middlename: "Martinez", suffix: "Sr.", birthday: "1965-01-30", address: "654 P. Burgos St., Imus, Cavite" },
+    { id: 6, lastname: "Lopez", firstname: "Carmen", middlename: "Villanueva", suffix: null, birthday: "1992-09-12", address: "987 Gen. Trias Dr., Gen. Trias, Cavite" },
+    { id: 7, lastname: "Mendoza", firstname: "Roberto", middlename: "Fernandez", suffix: "III", birthday: "1988-05-18", address: "159 Molino Blvd., Bacoor, Cavite" },
+    { id: 8, lastname: "Torres", firstname: "Luz", middlename: "Aquino", suffix: null, birthday: "1975-12-03", address: "753 Salitran Rd., Dasmariñas, Cavite" },
+    { id: 9, lastname: "Flores", firstname: "Miguel", middlename: "Ramos", suffix: "Jr.", birthday: "1983-08-25", address: "852 Palico Rd., Imus, Cavite" },
+    { id: 10, lastname: "Morales", firstname: "Rosa", middlename: "Castillo", suffix: null, birthday: "1995-04-07", address: "951 Anabu Rd., Imus, Cavite" },
+    { id: 11, lastname: "Rivera", firstname: "Carlos", middlename: "Jimenez", suffix: null, birthday: "1970-10-14", address: "357 Tanzang Luma, Imus, Cavite" },
   ];
 
   // Helper to convert month name to number
@@ -250,6 +253,30 @@ export const Desktop = (): JSX.Element => {
       setAddError('Failed to add patient.');
     }
   };
+
+  const handleAppointmentClick = () => {
+    if (foundPatient) {
+      setSelectedPatientForAppointment(foundPatient);
+      setShowAppointmentDashboard(true);
+      setShowFound(false); // Hide the patient ID modal
+    }
+  };
+
+  const handleBackFromAppointment = () => {
+    setShowAppointmentDashboard(false);
+    setSelectedPatientForAppointment(null);
+    setShowFound(true); // Show the patient ID modal again
+  };
+
+  // If showing appointment dashboard, render it instead of the main interface
+  if (showAppointmentDashboard && selectedPatientForAppointment) {
+    return (
+      <AppointmentDashboard 
+        patient={selectedPatientForAppointment}
+        onBack={handleBackFromAppointment}
+      />
+    );
+  }
 
   return (
     <div className="bg-white w-full min-h-screen relative">
@@ -480,7 +507,7 @@ export const Desktop = (): JSX.Element => {
             </div>
             <div className="flex flex-row gap-4 mt-6 print:hidden">
               <Button onClick={handleCloseFound} className="bg-gray-400 text-white px-6 py-2 rounded-lg text-lg">Back</Button>
-              <Button onClick={() => window.location.href = `/appointment-dashboard?patient_id=${foundPatient.id}`} className="bg-green-700 text-white px-6 py-2 rounded-lg text-lg">Appointment</Button>
+              <Button onClick={handleAppointmentClick} className="bg-green-700 text-white px-6 py-2 rounded-lg text-lg">Appointment</Button>
             </div>
           </div>
         </div>
