@@ -40,6 +40,7 @@ export const Desktop = (): JSX.Element => {
   const [addError, setAddError] = useState<string | null>(null);
   const [showAppointmentDashboard, setShowAppointmentDashboard] = useState(false);
   const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState<any>(null);
+  const [isSubmittingPatient, setIsSubmittingPatient] = useState(false);
 
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
   const months = [
@@ -94,9 +95,40 @@ export const Desktop = (): JSX.Element => {
       return;
     }
     const formattedBirthday = `${birthdayYear}-${monthNum}-${birthdayDay.padStart(2, '0')}`;
-    // Debug logs
-    console.log("Searching for:", formData, "Birthday:", formattedBirthday);
-    // Find all patients matching the name and birthday
+    
+    try {
+      // First try to search in the database
+      const response = await fetch('/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          lastname: formData.lastname.trim(),
+          firstname: formData.firstname.trim(),
+          middlename: formData.middlename.trim(),
+          suffix: formData.suffix.trim(),
+          birthday: formattedBirthday
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.data.patients.length > 0) {
+        // Found patient in database
+        const patient = data.data.patients[0];
+        setFoundPatient(patient);
+        setShowFound(true);
+        setShowNotFound(false);
+        setMatchingBirthdays([]);
+        setSelectBirthdayMode(false);
+        return;
+      }
+    } catch (error) {
+      console.error('Database search error:', error);
+    }
+
+    // Fallback to local search if database search fails or no results
     const match = knownPatients.find(
       p =>
         p.lastname.toLowerCase() === formData.lastname.trim().toLowerCase() &&
@@ -104,7 +136,7 @@ export const Desktop = (): JSX.Element => {
         p.middlename?.toLowerCase() === formData.middlename.trim().toLowerCase() &&
         p.birthday === formattedBirthday
     );
-    console.log("Match found:", match);
+
     if (match) {
       setFoundPatient(match);
       setShowFound(true);
@@ -206,6 +238,19 @@ export const Desktop = (): JSX.Element => {
 
   const handleCloseAddPatient = () => {
     setShowAddPatient(false);
+    // Reset form and messages
+    setAddForm({ 
+      lastname: '', 
+      firstname: '', 
+      middlename: '', 
+      suffix: '', 
+      birthdayDay: '', 
+      birthdayMonth: '', 
+      birthdayYear: '', 
+      address: '' 
+    });
+    setAddSuccess(null);
+    setAddError(null);
   };
 
   const handleAddFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -216,41 +261,77 @@ export const Desktop = (): JSX.Element => {
     e.preventDefault();
     setAddSuccess(null);
     setAddError(null);
-    // Validate fields
-    if (!addForm.lastname || !addForm.firstname || !addForm.middlename || !addForm.birthdayDay || !addForm.birthdayMonth || !addForm.birthdayYear || !addForm.address) {
-      setAddError('Please fill in all required fields.');
+    setIsSubmittingPatient(true);
+
+    // Validate required fields
+    if (!addForm.lastname || !addForm.firstname || !addForm.middlename || 
+        !addForm.birthdayDay || !addForm.birthdayMonth || !addForm.birthdayYear || !addForm.address) {
+      setAddError('Please fill in all required fields (all fields except suffix are required).');
+      setIsSubmittingPatient(false);
       return;
     }
-    // Prepare birthday
+
+    // Prepare birthday in YYYY-MM-DD format
     const monthNum = monthNameToNumber(addForm.birthdayMonth);
     if (!monthNum) {
       setAddError('Please enter a valid month name (e.g., March).');
+      setIsSubmittingPatient(false);
       return;
     }
     const birthday = `${addForm.birthdayYear}-${monthNum}-${addForm.birthdayDay.padStart(2, '0')}`;
-    // Connect to backend
+
+    // Validate date
+    const dateObj = new Date(birthday);
+    if (isNaN(dateObj.getTime())) {
+      setAddError('Please enter a valid date.');
+      setIsSubmittingPatient(false);
+      return;
+    }
+
     try {
       const response = await fetch('/add_patient', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({
-          lastname: addForm.lastname,
-          firstname: addForm.firstname,
-          middlename: addForm.middlename,
-          suffix: addForm.suffix,
+          lastname: addForm.lastname.trim(),
+          firstname: addForm.firstname.trim(),
+          middlename: addForm.middlename.trim(),
+          suffix: addForm.suffix.trim() || null,
           birthday,
-          address: addForm.address,
+          address: addForm.address.trim(),
         })
       });
+
       const data = await response.json();
-      if (data.success) {
-        setAddSuccess('Patient added successfully!');
-        setAddForm({ lastname: '', firstname: '', middlename: '', suffix: '', birthdayDay: '', birthdayMonth: '', birthdayYear: '', address: '' });
+      
+      if (response.ok && data.success) {
+        setAddSuccess(`Patient "${addForm.firstname} ${addForm.lastname}" has been successfully added to the database!`);
+        // Reset form after successful submission
+        setAddForm({ 
+          lastname: '', 
+          firstname: '', 
+          middlename: '', 
+          suffix: '', 
+          birthdayDay: '', 
+          birthdayMonth: '', 
+          birthdayYear: '', 
+          address: '' 
+        });
+        
+        // Auto-close the modal after 3 seconds
+        setTimeout(() => {
+          handleCloseAddPatient();
+        }, 3000);
       } else {
-        setAddError(data.message || 'Failed to add patient.');
+        setAddError(data.message || 'Failed to add patient. Please try again.');
       }
-    } catch (err) {
-      setAddError('Failed to add patient.');
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      setAddError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmittingPatient(false);
     }
   };
 
@@ -412,9 +493,15 @@ export const Desktop = (): JSX.Element => {
               </select>
             </div>
             <Input name="address" value={addForm.address} onChange={handleAddFormChange} placeholder="Address" className="w-full text-[18px]" />
-            {addError && <div className="text-red-600 font-semibold mt-2">{addError}</div>}
-            {addSuccess && <div className="text-green-600 font-semibold mt-2">{addSuccess}</div>}
-            <Button type="submit" className="w-full h-[50px] mt-[16px] bg-[#05196a] rounded-[16px] shadow font-sans font-extrabold text-white text-[22px] hover:bg-[#041456] transition-colors">Add Patient</Button>
+            {addError && <div className="text-red-600 font-semibold mt-2 text-center">{addError}</div>}
+            {addSuccess && <div className="text-green-600 font-semibold mt-2 text-center">{addSuccess}</div>}
+            <Button 
+              type="submit" 
+              disabled={isSubmittingPatient}
+              className="w-full h-[50px] mt-[16px] bg-[#05196a] rounded-[16px] shadow font-sans font-extrabold text-white text-[22px] hover:bg-[#041456] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmittingPatient ? 'Adding Patient...' : 'Add Patient'}
+            </Button>
           </form>
         </div>
       )}
@@ -535,33 +622,114 @@ export const Desktop = (): JSX.Element => {
 
       {showAddPatient && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-lg p-10 flex flex-col items-center">
-            <h2 className="text-2xl font-bold mb-4 text-green-700">Add Patient</h2>
-            <form onSubmit={handleAddPatientSubmit} className="flex flex-col gap-3 items-center w-full max-w-md">
-              <Input name="lastname" value={addForm.lastname} onChange={handleAddFormChange} placeholder="Lastname" className="w-full text-[18px]" />
-              <Input name="firstname" value={addForm.firstname} onChange={handleAddFormChange} placeholder="Firstname" className="w-full text-[18px]" />
-              <Input name="middlename" value={addForm.middlename} onChange={handleAddFormChange} placeholder="Middlename" className="w-full text-[18px]" />
-              <Input name="suffix" value={addForm.suffix} onChange={handleAddFormChange} placeholder="Suffix (Optional)" className="w-full text-[18px]" />
+          <div className="bg-white rounded-2xl shadow-lg p-10 flex flex-col items-center max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold mb-4 text-green-700">Add New Patient</h2>
+            <form onSubmit={handleAddPatientSubmit} className="flex flex-col gap-3 items-center w-full">
+              <Input 
+                name="lastname" 
+                value={addForm.lastname} 
+                onChange={handleAddFormChange} 
+                placeholder="Lastname *" 
+                className="w-full text-[18px]" 
+                required
+              />
+              <Input 
+                name="firstname" 
+                value={addForm.firstname} 
+                onChange={handleAddFormChange} 
+                placeholder="Firstname *" 
+                className="w-full text-[18px]" 
+                required
+              />
+              <Input 
+                name="middlename" 
+                value={addForm.middlename} 
+                onChange={handleAddFormChange} 
+                placeholder="Middlename *" 
+                className="w-full text-[18px]" 
+                required
+              />
+              <Input 
+                name="suffix" 
+                value={addForm.suffix} 
+                onChange={handleAddFormChange} 
+                placeholder="Suffix (Optional)" 
+                className="w-full text-[18px]" 
+              />
               <div className="flex gap-2 w-full">
-                <select name="birthdayDay" value={addForm.birthdayDay} onChange={handleAddFormChange} className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2">
-                  <option value="">Day</option>
+                <select 
+                  name="birthdayDay" 
+                  value={addForm.birthdayDay} 
+                  onChange={handleAddFormChange} 
+                  className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2"
+                  required
+                >
+                  <option value="">Day *</option>
                   {days.map(day => <option key={day} value={day}>{day}</option>)}
                 </select>
-                <select name="birthdayMonth" value={addForm.birthdayMonth} onChange={handleAddFormChange} className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2">
-                  <option value="">Month</option>
+                <select 
+                  name="birthdayMonth" 
+                  value={addForm.birthdayMonth} 
+                  onChange={handleAddFormChange} 
+                  className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2"
+                  required
+                >
+                  <option value="">Month *</option>
                   {months.map(month => <option key={month} value={month}>{month}</option>)}
                 </select>
-                <select name="birthdayYear" value={addForm.birthdayYear} onChange={handleAddFormChange} className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2">
-                  <option value="">Year</option>
+                <select 
+                  name="birthdayYear" 
+                  value={addForm.birthdayYear} 
+                  onChange={handleAddFormChange} 
+                  className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2"
+                  required
+                >
+                  <option value="">Year *</option>
                   {years.map(year => <option key={year} value={year}>{year}</option>)}
                 </select>
               </div>
-              <Input name="address" value={addForm.address} onChange={handleAddFormChange} placeholder="Address" className="w-full text-[18px]" />
-              {addError && <div className="text-red-600 font-semibold mt-2">{addError}</div>}
-              {addSuccess && <div className="text-green-600 font-semibold mt-2">{addSuccess}</div>}
-              <Button type="submit" className="w-full h-[50px] mt-[16px] bg-green-600 rounded-[16px] shadow font-sans font-extrabold text-white text-[22px] hover:bg-green-800 transition-colors">Add Patient</Button>
+              <Input 
+                name="address" 
+                value={addForm.address} 
+                onChange={handleAddFormChange} 
+                placeholder="Address *" 
+                className="w-full text-[18px]" 
+                required
+              />
+              
+              {addError && (
+                <div className="w-full p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center text-sm">
+                  {addError}
+                </div>
+              )}
+              
+              {addSuccess && (
+                <div className="w-full p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center text-sm">
+                  {addSuccess}
+                </div>
+              )}
+              
+              <div className="flex gap-3 w-full mt-4">
+                <Button 
+                  type="button" 
+                  onClick={handleCloseAddPatient} 
+                  className="flex-1 bg-gray-400 text-white px-6 py-2 rounded-lg text-lg hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmittingPatient}
+                  className="flex-1 bg-green-600 rounded-[16px] shadow font-sans font-extrabold text-white text-lg hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingPatient ? 'Adding...' : 'Add Patient'}
+                </Button>
+              </div>
             </form>
-            <Button onClick={handleCloseAddPatient} className="bg-gray-400 text-white px-6 py-2 rounded-lg text-lg mt-4">Close</Button>
+            
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              * Required fields
+            </p>
           </div>
         </div>
       )}

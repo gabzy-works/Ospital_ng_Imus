@@ -88,6 +88,41 @@ def init_database():
     conn.close()
     print("Database initialized successfully!")
 
+def add_patient(lastname, firstname, middlename=None, suffix=None, birthday=None, address=None):
+    """Add a new patient to the database"""
+    try:
+        conn = sqlite3.connect('data/patients.db')
+        cursor = conn.cursor()
+        
+        # Insert new patient
+        cursor.execute('''
+            INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address, is_new)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+        ''', (lastname, firstname, middlename, suffix, birthday, address))
+        
+        # Get the ID of the newly inserted patient
+        patient_id = cursor.lastrowid
+        
+        # Fetch the complete patient record
+        cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
+        result = cursor.fetchone()
+        
+        if result:
+            columns = [description[0] for description in cursor.description]
+            patient = dict(zip(columns, result))
+        else:
+            patient = None
+            
+        conn.commit()
+        conn.close()
+        
+        print(f"Successfully added patient: {firstname} {lastname} (ID: {patient_id})")
+        return {'success': True, 'patient': patient, 'patient_id': patient_id}
+        
+    except Exception as e:
+        print(f"Error adding patient: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
 def search_patients(lastname=None, firstname=None, middlename=None, suffix=None, birthday=None, address=None):
     """Search for patients based on provided criteria"""
     conn = sqlite3.connect('data/patients.db')
@@ -147,6 +182,28 @@ def get_all_patients():
     
     conn.close()
     return patients
+
+def get_patient_by_id(patient_id):
+    """Get a specific patient by ID"""
+    try:
+        conn = sqlite3.connect('data/patients.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM patients WHERE id = ?", (patient_id,))
+        result = cursor.fetchone()
+        
+        if result:
+            columns = [description[0] for description in cursor.description]
+            patient = dict(zip(columns, result))
+        else:
+            patient = None
+            
+        conn.close()
+        return patient
+        
+    except Exception as e:
+        print(f"Error getting patient by ID: {str(e)}")
+        return None
 
 if __name__ == '__main__':
     # Initialize database when script is run directly
