@@ -3,6 +3,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { DatePicker } from "../../components/ui/date-picker";
 import { AppointmentDashboard } from "../AppointmentDashboard";
+import { AdminLogin } from "../AdminLogin";
+import { AdminDashboard } from "../AdminDashboard";
 
 export const Desktop = (): JSX.Element => {
   const [birthday, setBirthday] = useState<Date | undefined>();
@@ -41,6 +43,8 @@ export const Desktop = (): JSX.Element => {
   const [showAppointmentDashboard, setShowAppointmentDashboard] = useState(false);
   const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState<any>(null);
   const [isSubmittingPatient, setIsSubmittingPatient] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
 
   const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
   const months = [
@@ -349,6 +353,38 @@ export const Desktop = (): JSX.Element => {
     setShowFound(true); // Show the patient ID modal again
   };
 
+  const handleAdminLogin = () => {
+    setShowAdminLogin(true);
+  };
+
+  const handleAdminLoginSuccess = () => {
+    setShowAdminLogin(false);
+    setShowAdminDashboard(true);
+  };
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('adminLoggedIn');
+    setShowAdminDashboard(false);
+  };
+
+  // Check if admin is already logged in on component mount
+  React.useEffect(() => {
+    const isAdminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+    if (isAdminLoggedIn) {
+      setShowAdminDashboard(true);
+    }
+  }, []);
+
+  // If showing admin login, render it instead of the main interface
+  if (showAdminLogin) {
+    return <AdminLogin onLogin={handleAdminLoginSuccess} />;
+  }
+
+  // If showing admin dashboard, render it instead of the main interface
+  if (showAdminDashboard) {
+    return <AdminDashboard onLogout={handleAdminLogout} />;
+  }
+
   // If showing appointment dashboard, render it instead of the main interface
   if (showAppointmentDashboard && selectedPatientForAppointment) {
     return (
@@ -374,7 +410,7 @@ export const Desktop = (): JSX.Element => {
       <header className="w-full h-[140px] bg-white/90 backdrop-blur-sm border-0 border-none shadow-[0px_4px_4px_#00000040] relative z-10" />
       <div className="w-full h-[24px] bg-[#05196a] border-0 border-none shadow-[0px_4px_4px_#00000040] relative z-10" />
       
-      {/* Header row: logos left, title centered */}
+      {/* Header row: logos left, title centered, admin button right */}
       <div className="flex items-center absolute top-[14px] left-0 w-full z-20 px-6">
         {/* Logos group on the left */}
         <div className="flex items-center">
@@ -400,8 +436,15 @@ export const Desktop = (): JSX.Element => {
             OSPITAL NG IMUS
           </h1>
         </div>
-        {/* Optional: right side empty for spacing */}
-        <div className="w-[300px]" />
+        {/* Admin button on the right */}
+        <div className="w-[300px] flex justify-end">
+          <button
+            onClick={handleAdminLogin}
+            className="bg-white hover:bg-gray-50 text-[#05196a] px-6 py-2 rounded-lg text-lg font-semibold shadow-lg border border-gray-200 transition-colors"
+          >
+            Admin Login
+          </button>
+        </div>
       </div>
 
       {/* Main content container */}

@@ -287,6 +287,75 @@ def create_appointment():
             "message": f"Database error: {str(e)}"
         }), 500
 
+@app.route('/admin/login', methods=['POST'])
+def admin_login():
+    """Handle admin login"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+        
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        # Simple hardcoded admin credentials (in production, use proper authentication)
+        if username == 'admin' and password == 'admin123':
+            return jsonify({
+                'success': True,
+                'message': 'Login successful'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid username or password'
+            }), 401
+            
+    except Exception as e:
+        print(f"Error in admin login: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/admin/appointments', methods=['GET'])
+def get_all_appointments():
+    """Get all appointments with patient information for admin dashboard"""
+    try:
+        conn = sqlite3.connect('data/patients.db')
+        cursor = conn.cursor()
+        
+        # Get all appointments with patient names
+        cursor.execute('''
+            SELECT 
+                a.*,
+                (p.firstname || ' ' || COALESCE(p.middlename, '') || ' ' || p.lastname || ' ' || COALESCE(p.suffix, '')) as patient_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.id
+            ORDER BY a.appointment_date DESC
+        ''')
+        
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        appointments = [dict(zip(columns, row)) for row in results]
+        conn.close()
+        
+        return jsonify({
+            "success": True, 
+            "appointments": appointments,
+            "count": len(appointments)
+        })
+        
+    except Exception as e:
+        print(f"Error getting all appointments: {str(e)}")
+        return jsonify({
+            "success": False, 
+            "message": f"Database error: {str(e)}"
+        }), 500
+
 if __name__ == '__main__':
     # Create static and templates directories if they don't exist
     os.makedirs('static/css', exist_ok=True)
