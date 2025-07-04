@@ -430,7 +430,7 @@ export const Desktop = (): JSX.Element => {
                   className="w-12 h-12 object-cover rounded-full border-2 border-white bg-white"
                 />
                 <div className="flex-1 text-center">
-                  <span className="text-white font-bold text-lg tracking-wide drop-shadow">OSPITAL NG IMUS</span>
+                  <span className="text-white font-bold text-lg tracking-wide drop-shadow">PATIENT ID</span>
                 </div>
                 <img
                   src="/20250625_092019.jpg"
@@ -444,7 +444,7 @@ export const Desktop = (): JSX.Element => {
                   <img
                     src={uploadedIdImage || "/Patient ID sample.png"}
                     alt="Patient ID"
-                    className="w-20 h-24 object-cover rounded-lg border-2 border-white bg-white"
+                    className="w-24 h-24 object-cover rounded-lg border-2 border-white bg-white"
                   />
                   <input
                     type="file"
@@ -462,13 +462,14 @@ export const Desktop = (): JSX.Element => {
                   </button>
                 </div>
                 <div className="flex flex-col items-center justify-center text-white text-base font-medium gap-2 text-center self-center my-auto">
-                  <div><span className="font-bold">Lastname:</span> {foundPatient.lastname}</div>
-                  <div><span className="font-bold">Firstname:</span> {foundPatient.firstname}</div>
-                  <div><span className="font-bold">Middlename:</span> {foundPatient.middlename || '-'}</div>
-                  <div><span className="font-bold">Suffix:</span> {foundPatient.suffix || '-'}</div>
-                  <div><span className="font-bold">Birthday:</span> {formatBirthday(foundPatient.birthday)}</div>
-                  <div><span className="font-bold">Address:</span> {foundPatient.address}</div>
-                  <div><span className="font-bold">Patient ID:</span> {foundPatient.id || '-'}</div>
+                  <div className="flex flex-col items-center w-full">
+                    <div><span className="font-bold">Lastname:</span> {foundPatient.lastname}</div>
+                    <div><span className="font-bold">Firstname:</span> {foundPatient.firstname}</div>
+                    <div><span className="font-bold">Middlename:</span> {foundPatient.middlename || '-'}</div>
+                    <div><span className="font-bold">Suffix:</span> {foundPatient.suffix || '-'}</div>
+                    <div><span className="font-bold">Birthday:</span> {formatBirthday(foundPatient.birthday)}</div>
+                    <div><span className="font-bold">Address:</span> {foundPatient.address}</div>
+                  </div>
                 </div>
               </div>
               {/* ID Footer */}
@@ -477,7 +478,10 @@ export const Desktop = (): JSX.Element => {
                 <span className="text-xs text-white/80 font-semibold">Valid at ONI</span>
               </div>
             </div>
-            <Button onClick={handleCloseFound} className="bg-gray-400 text-white px-6 py-2 rounded-lg text-lg mt-6 print:hidden">Back</Button>
+            <div className="flex flex-row gap-4 mt-6 print:hidden">
+              <Button onClick={handleCloseFound} className="bg-gray-400 text-white px-6 py-2 rounded-lg text-lg">Back</Button>
+              <Button onClick={() => window.location.href = `/appointment-dashboard?patient_id=${foundPatient.id}`} className="bg-green-700 text-white px-6 py-2 rounded-lg text-lg">Appointment</Button>
+            </div>
           </div>
         </div>
       )}

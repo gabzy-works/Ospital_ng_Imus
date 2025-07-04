@@ -10,49 +10,55 @@ def init_database():
     
     # Connect to SQLite database
     conn = sqlite3.connect('data/patients.db')
-    cursor = conn.cursor()
-    
-    # Create patients table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            lastname TEXT NOT NULL,
-            firstname TEXT NOT NULL,
-            middlename TEXT,
-            suffix TEXT,
-            birthday DATE NOT NULL,
-            address TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    # Check if table is empty (to avoid duplicate data)
-    cursor.execute('SELECT COUNT(*) FROM patients')
-    count = cursor.fetchone()[0]
-    
-    if count == 0:
-        # Insert dummy patient data
-        dummy_patients = [
-            ('Santos', 'Maria', 'Cruz', None, '1985-03-15', '123 Rizal St., Imus, Cavite'),
-            ('Santos', 'Shayne', 'Cruz', None, '1985-05-15', '456 Mabini St., Imus, Cavite'),
-            ('Garcia', 'Juan', 'Dela Cruz', 'Jr.', '1990-07-22', '789 Bonifacio Ave., Bacoor, Cavite'),
-            ('Reyes', 'Ana', 'Bautista', None, '1978-11-08', '321 Aguinaldo Hwy., Dasmariñas, Cavite'),
-            ('Gonzales', 'Pedro', 'Martinez', 'Sr.', '1965-01-30', '654 P. Burgos St., Imus, Cavite'),
-            ('Lopez', 'Carmen', 'Villanueva', None, '1992-09-12', '987 Gen. Trias Dr., Gen. Trias, Cavite'),
-            ('Mendoza', 'Roberto', 'Fernandez', 'III', '1988-05-18', '159 Molino Blvd., Bacoor, Cavite'),
-            ('Torres', 'Luz', 'Aquino', None, '1975-12-03', '753 Salitran Rd., Dasmariñas, Cavite'),
-            ('Flores', 'Miguel', 'Ramos', 'Jr.', '1983-08-25', '852 Palico Rd., Imus, Cavite'),
-            ('Morales', 'Rosa', 'Castillo', None, '1995-04-07', '951 Anabu Rd., Imus, Cavite'),
-            ('Rivera', 'Carlos', 'Jimenez', None, '1970-10-14', '357 Tanzang Luma, Imus, Cavite')
-        ]
+    if os.path.exists('schema.sql'):
+        with open('schema.sql', 'r') as f:
+            conn.executescript(f.read())
+    else:
+        # fallback to old table creation
+        cursor = conn.cursor()
         
-        cursor.executemany('''
-            INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', dummy_patients)
+        # Create patients table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS patients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lastname TEXT NOT NULL,
+                firstname TEXT NOT NULL,
+                middlename TEXT,
+                suffix TEXT,
+                birthday DATE NOT NULL,
+                address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_new INTEGER DEFAULT 1
+            )
+        ''')
         
-        print(f"Inserted {len(dummy_patients)} dummy patient records")
+        # Check if table is empty (to avoid duplicate data)
+        cursor.execute('SELECT COUNT(*) FROM patients')
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            # Insert dummy patient data
+            dummy_patients = [
+                ('Santos', 'Maria', 'Cruz', None, '1985-03-15', '123 Rizal St., Imus, Cavite'),
+                ('Santos', 'Shayne', 'Cruz', None, '1985-05-15', '456 Mabini St., Imus, Cavite'),
+                ('Garcia', 'Juan', 'Dela Cruz', 'Jr.', '1990-07-22', '789 Bonifacio Ave., Bacoor, Cavite'),
+                ('Reyes', 'Ana', 'Bautista', None, '1978-11-08', '321 Aguinaldo Hwy., Dasmariñas, Cavite'),
+                ('Gonzales', 'Pedro', 'Martinez', 'Sr.', '1965-01-30', '654 P. Burgos St., Imus, Cavite'),
+                ('Lopez', 'Carmen', 'Villanueva', None, '1992-09-12', '987 Gen. Trias Dr., Gen. Trias, Cavite'),
+                ('Mendoza', 'Roberto', 'Fernandez', 'III', '1988-05-18', '159 Molino Blvd., Bacoor, Cavite'),
+                ('Torres', 'Luz', 'Aquino', None, '1975-12-03', '753 Salitran Rd., Dasmariñas, Cavite'),
+                ('Flores', 'Miguel', 'Ramos', 'Jr.', '1983-08-25', '852 Palico Rd., Imus, Cavite'),
+                ('Morales', 'Rosa', 'Castillo', None, '1995-04-07', '951 Anabu Rd., Imus, Cavite'),
+                ('Rivera', 'Carlos', 'Jimenez', None, '1970-10-14', '357 Tanzang Luma, Imus, Cavite')
+            ]
+            
+            cursor.executemany('''
+                INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', dummy_patients)
+            
+            print(f"Inserted {len(dummy_patients)} dummy patient records")
     
     # Commit changes and close connection
     conn.commit()

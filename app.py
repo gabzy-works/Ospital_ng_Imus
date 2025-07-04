@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from datetime import datetime
 import os
 from database import init_database, search_patients, get_all_patients
+import sqlite3
 
 app = Flask(__name__)
 
@@ -96,6 +97,66 @@ def health_check():
         'timestamp': datetime.now().isoformat(),
         'database': 'connected'
     })
+
+@app.route('/add_patient', methods=['POST'])
+def add_patient():
+    data = request.get_json()
+    lastname = data.get('lastname', '').strip()
+    firstname = data.get('firstname', '').strip()
+    middlename = data.get('middlename', '').strip()
+    suffix = data.get('suffix', '').strip()
+    birthday = data.get('birthday', '').strip()
+    address = data.get('address', '').strip()
+
+    if not (lastname and firstname and middlename and birthday and address):
+        return {'success': False, 'message': 'All fields except suffix are required.'}, 400
+
+    try:
+        conn = sqlite3.connect('data/patients.db')
+        cursor = conn.cursor()
+        cursor.execute(
+            '''
+            INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''',
+            (lastname, firstname, middlename, suffix, birthday, address)
+        )
+        conn.commit()
+        conn.close()
+        return {'success': True, 'message': 'Patient added successfully!'}
+    except Exception as e:
+        return {'success': False, 'message': f'Failed to add patient: {str(e)}'}, 500
+
+@app.route('/appointments/<int:patient_id>', methods=['GET'])
+def get_appointments(patient_id):
+    """Get all appointments for a patient"""
+    conn = sqlite3.connect('data/patients.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM appointments WHERE patient_id = ? ORDER BY appointment_date DESC", (patient_id,))
+    results = cursor.fetchall()
+    columns = [desc[0] for desc in cursor.description]
+    appointments = [dict(zip(columns, row)) for row in results]
+    conn.close()
+    return jsonify({"success": True, "appointments": appointments})
+
+@app.route('/appointments', methods=['POST'])
+def create_appointment():
+    """Create a new appointment for a patient"""
+    data = request.get_json()
+    patient_id = data.get('patient_id')
+    appointment_date = data.get('appointment_date')
+    reason = data.get('reason', '')
+    if not patient_id or not appointment_date:
+        return jsonify({"success": False, "message": "Missing patient_id or appointment_date"}), 400
+    conn = sqlite3.connect('data/patients.db')
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO appointments (patient_id, appointment_date, reason) VALUES (?, ?, ?)",
+        (patient_id, appointment_date, reason)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "message": "Appointment created"})
 
 if __name__ == '__main__':
     # Create static and templates directories if they don't exist
