@@ -1,13 +1,21 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from datetime import datetime
 import os
-from database import init_database, search_patients, get_all_patients, add_patient, get_patient_by_id
+from database import (init_database, search_patients, get_all_patients, add_patient, 
+                     get_patient_by_id, import_patients_from_csv, import_patients_from_json, 
+                     get_import_history)
 import sqlite3
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['UPLOAD_FOLDER'] = 'data/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create upload directory
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize database on startup
 init_database()
@@ -107,7 +115,7 @@ def health_check():
 
 @app.route('/add_patient', methods=['POST'])
 def add_patient_route():
-    """Add a new patient to the database"""
+    """Add a new patient to the database with enhanced fields"""
     try:
         # Get JSON data from request
         data = request.get_json()
@@ -122,15 +130,24 @@ def add_patient_route():
         lastname = data.get('lastname', '').strip()
         firstname = data.get('firstname', '').strip()
         middlename = data.get('middlename', '').strip()
-        suffix = data.get('suffix', '').strip() or None  # Convert empty string to None
+        suffix = data.get('suffix', '').strip() or None
         birthday = data.get('birthday', '').strip()
         address = data.get('address', '').strip()
+        
+        # Optional fields
+        phone = data.get('phone', '').strip() or None
+        email = data.get('email', '').strip() or None
+        emergency_contact_name = data.get('emergency_contact_name', '').strip() or None
+        emergency_contact_phone = data.get('emergency_contact_phone', '').strip() or None
+        medical_history = data.get('medical_history', '').strip() or None
+        allergies = data.get('allergies', '').strip() or None
+        blood_type = data.get('blood_type', '').strip() or None
 
         # Validate required fields
         if not (lastname and firstname and middlename and birthday and address):
             return jsonify({
                 'success': False,
-                'message': 'All fields except suffix are required (lastname, firstname, middlename, birthday, address).'
+                'message': 'All required fields must be provided (lastname, firstname, middlename, birthday, address).'
             }), 400
 
         # Validate birthday format (should be YYYY-MM-DD)
@@ -164,7 +181,14 @@ def add_patient_route():
             middlename=middlename,
             suffix=suffix,
             birthday=birthday,
-            address=address
+            address=address,
+            phone=phone,
+            email=email,
+            emergency_contact_name=emergency_contact_name,
+            emergency_contact_phone=emergency_contact_phone,
+            medical_history=medical_history,
+            allergies=allergies,
+            blood_type=blood_type
         )
         
         if result['success']:
@@ -185,6 +209,87 @@ def add_patient_route():
         return jsonify({
             'success': False,
             'message': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/import_patients', methods=['POST'])
+def import_patients():
+    """Import patients from uploaded CSV or JSON file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'message': 'No file uploaded'
+            }), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'message': 'No file selected'
+            }), 400
+        
+        # Check file extension
+        filename = secure_filename(file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        
+        if file_ext not in ['csv', 'json']:
+            return jsonify({
+                'success': False,
+                'message': 'Only CSV and JSON files are supported'
+            }), 400
+        
+        # Save uploaded file
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+        # Import based on file type
+        if file_ext == 'csv':
+            result = import_patients_from_csv(file_path)
+        else:  # json
+            result = import_patients_from_json(file_path)
+        
+        # Clean up uploaded file
+        try:
+            os.remove(file_path)
+        except:
+            pass
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'message': f'Successfully imported {result["imported_count"]} patients',
+                'imported_count': result['imported_count'],
+                'errors': result['errors'],
+                'total_errors': result['total_errors']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Import failed: {result["error"]}',
+                'imported_count': result['imported_count'],
+                'errors': result['errors']
+            }), 500
+            
+    except Exception as e:
+        print(f"Error in import_patients: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/import_history')
+def import_history():
+    """Get the history of data imports"""
+    try:
+        imports = get_import_history()
+        return jsonify({
+            'success': True,
+            'imports': imports
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Database error: {str(e)}'
         }), 500
 
 @app.route('/appointments/<int:patient_id>', methods=['GET'])
@@ -239,7 +344,10 @@ def create_appointment():
         
         patient_id = data.get('patient_id')
         appointment_date = data.get('appointment_date')
+        appointment_time = data.get('appointment_time', '09:00')
+        appointment_type = data.get('type', 'Consultation')
         reason = data.get('reason', '')
+        doctor_name = data.get('doctor_name', '')
         
         if not patient_id or not appointment_date:
             return jsonify({
@@ -267,8 +375,8 @@ def create_appointment():
         conn = sqlite3.connect('data/patients.db')
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO appointments (patient_id, appointment_date, reason) VALUES (?, ?, ?)",
-            (patient_id, appointment_date, reason)
+            "INSERT INTO appointments (patient_id, appointment_date, appointment_time, type, reason, doctor_name) VALUES (?, ?, ?, ?, ?, ?)",
+            (patient_id, appointment_date, appointment_time, appointment_type, reason, doctor_name)
         )
         conn.commit()
         appointment_id = cursor.lastrowid
@@ -335,6 +443,7 @@ def get_all_appointments():
                 (p.firstname || ' ' || COALESCE(p.middlename, '') || ' ' || p.lastname || ' ' || COALESCE(p.suffix, '')) as patient_name
             FROM appointments a
             LEFT JOIN patients p ON a.patient_id = p.id
+            WHERE p.status = 'active'
             ORDER BY a.appointment_date DESC
         ''')
         
@@ -363,6 +472,7 @@ if __name__ == '__main__':
     os.makedirs('static/images', exist_ok=True)
     os.makedirs('templates', exist_ok=True)
     os.makedirs('data', exist_ok=True)
+    os.makedirs('data/uploads', exist_ok=True)
     
     # Run the Flask application
     app.run(debug=True, host='0.0.0.0', port=5000)

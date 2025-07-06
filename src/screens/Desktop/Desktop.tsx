@@ -37,6 +37,13 @@ export const Desktop = (): JSX.Element => {
     birthdayMonth: '',
     birthdayYear: '',
     address: '',
+    phone: '',
+    email: '',
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    medical_history: '',
+    allergies: '',
+    blood_type: '',
   });
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
@@ -52,6 +59,7 @@ export const Desktop = (): JSX.Element => {
     "July", "August", "September", "October", "November", "December"
   ];
   const years = Array.from({ length: 2025 - 1900 + 1 }, (_, i) => String(1900 + i));
+  const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   // Form field data for mapping
   const formFields = [
@@ -251,13 +259,20 @@ export const Desktop = (): JSX.Element => {
       birthdayDay: '', 
       birthdayMonth: '', 
       birthdayYear: '', 
-      address: '' 
+      address: '',
+      phone: '',
+      email: '',
+      emergency_contact_name: '',
+      emergency_contact_phone: '',
+      medical_history: '',
+      allergies: '',
+      blood_type: '',
     });
     setAddSuccess(null);
     setAddError(null);
   };
 
-  const handleAddFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleAddFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setAddForm({ ...addForm, [e.target.name]: e.target.value });
   };
 
@@ -270,7 +285,7 @@ export const Desktop = (): JSX.Element => {
     // Validate required fields
     if (!addForm.lastname || !addForm.firstname || !addForm.middlename || 
         !addForm.birthdayDay || !addForm.birthdayMonth || !addForm.birthdayYear || !addForm.address) {
-      setAddError('Please fill in all required fields (all fields except suffix are required).');
+      setAddError('Please fill in all required fields (lastname, firstname, middlename, birthday, address).');
       setIsSubmittingPatient(false);
       return;
     }
@@ -305,6 +320,13 @@ export const Desktop = (): JSX.Element => {
           suffix: addForm.suffix.trim() || null,
           birthday,
           address: addForm.address.trim(),
+          phone: addForm.phone.trim() || null,
+          email: addForm.email.trim() || null,
+          emergency_contact_name: addForm.emergency_contact_name.trim() || null,
+          emergency_contact_phone: addForm.emergency_contact_phone.trim() || null,
+          medical_history: addForm.medical_history.trim() || null,
+          allergies: addForm.allergies.trim() || null,
+          blood_type: addForm.blood_type || null,
         })
       });
 
@@ -321,7 +343,14 @@ export const Desktop = (): JSX.Element => {
           birthdayDay: '', 
           birthdayMonth: '', 
           birthdayYear: '', 
-          address: '' 
+          address: '',
+          phone: '',
+          email: '',
+          emergency_contact_name: '',
+          emergency_contact_phone: '',
+          medical_history: '',
+          allergies: '',
+          blood_type: '',
         });
         
         // Auto-close the modal after 3 seconds
@@ -669,80 +698,163 @@ export const Desktop = (): JSX.Element => {
 
       {showAddPatient && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-lg p-10 flex flex-col items-center max-w-md w-full mx-4">
+          <div className="bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4 text-green-700">Add New Patient</h2>
             <form onSubmit={handleAddPatientSubmit} className="flex flex-col gap-3 items-center w-full">
-              <Input 
-                name="lastname" 
-                value={addForm.lastname} 
-                onChange={handleAddFormChange} 
-                placeholder="Lastname *" 
-                className="w-full text-[18px]" 
-                required
-              />
-              <Input 
-                name="firstname" 
-                value={addForm.firstname} 
-                onChange={handleAddFormChange} 
-                placeholder="Firstname *" 
-                className="w-full text-[18px]" 
-                required
-              />
-              <Input 
-                name="middlename" 
-                value={addForm.middlename} 
-                onChange={handleAddFormChange} 
-                placeholder="Middlename *" 
-                className="w-full text-[18px]" 
-                required
-              />
-              <Input 
-                name="suffix" 
-                value={addForm.suffix} 
-                onChange={handleAddFormChange} 
-                placeholder="Suffix (Optional)" 
-                className="w-full text-[18px]" 
-              />
-              <div className="flex gap-2 w-full">
-                <select 
-                  name="birthdayDay" 
-                  value={addForm.birthdayDay} 
-                  onChange={handleAddFormChange} 
-                  className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2"
-                  required
-                >
-                  <option value="">Day *</option>
-                  {days.map(day => <option key={day} value={day}>{day}</option>)}
-                </select>
-                <select 
-                  name="birthdayMonth" 
-                  value={addForm.birthdayMonth} 
-                  onChange={handleAddFormChange} 
-                  className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2"
-                  required
-                >
-                  <option value="">Month *</option>
-                  {months.map(month => <option key={month} value={month}>{month}</option>)}
-                </select>
-                <select 
-                  name="birthdayYear" 
-                  value={addForm.birthdayYear} 
-                  onChange={handleAddFormChange} 
-                  className="w-1/3 text-[18px] text-white bg-[#05196a] rounded px-2 py-2"
-                  required
-                >
-                  <option value="">Year *</option>
-                  {years.map(year => <option key={year} value={year}>{year}</option>)}
-                </select>
+              {/* Basic Information */}
+              <div className="w-full border-b pb-4 mb-4">
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input 
+                    name="lastname" 
+                    value={addForm.lastname} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Lastname *" 
+                    className="w-full text-[16px]" 
+                    required
+                  />
+                  <Input 
+                    name="firstname" 
+                    value={addForm.firstname} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Firstname *" 
+                    className="w-full text-[16px]" 
+                    required
+                  />
+                  <Input 
+                    name="middlename" 
+                    value={addForm.middlename} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Middlename *" 
+                    className="w-full text-[16px]" 
+                    required
+                  />
+                  <Input 
+                    name="suffix" 
+                    value={addForm.suffix} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Suffix (Optional)" 
+                    className="w-full text-[16px]" 
+                  />
+                </div>
+                
+                <div className="flex gap-2 w-full mt-3">
+                  <select 
+                    name="birthdayDay" 
+                    value={addForm.birthdayDay} 
+                    onChange={handleAddFormChange} 
+                    className="w-1/3 text-[16px] text-white bg-[#05196a] rounded px-2 py-2"
+                    required
+                  >
+                    <option value="">Day *</option>
+                    {days.map(day => <option key={day} value={day}>{day}</option>)}
+                  </select>
+                  <select 
+                    name="birthdayMonth" 
+                    value={addForm.birthdayMonth} 
+                    onChange={handleAddFormChange} 
+                    className="w-1/3 text-[16px] text-white bg-[#05196a] rounded px-2 py-2"
+                    required
+                  >
+                    <option value="">Month *</option>
+                    {months.map(month => <option key={month} value={month}>{month}</option>)}
+                  </select>
+                  <select 
+                    name="birthdayYear" 
+                    value={addForm.birthdayYear} 
+                    onChange={handleAddFormChange} 
+                    className="w-1/3 text-[16px] text-white bg-[#05196a] rounded px-2 py-2"
+                    required
+                  >
+                    <option value="">Year *</option>
+                    {years.map(year => <option key={year} value={year}>{year}</option>)}
+                  </select>
+                </div>
               </div>
-              <Input 
-                name="address" 
-                value={addForm.address} 
-                onChange={handleAddFormChange} 
-                placeholder="Address *" 
-                className="w-full text-[18px]" 
-                required
-              />
+
+              {/* Contact Information */}
+              <div className="w-full border-b pb-4 mb-4">
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">Contact Information</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <Input 
+                    name="address" 
+                    value={addForm.address} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Address *" 
+                    className="w-full text-[16px]" 
+                    required
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Input 
+                      name="phone" 
+                      value={addForm.phone} 
+                      onChange={handleAddFormChange} 
+                      placeholder="Phone Number" 
+                      className="w-full text-[16px]" 
+                    />
+                    <Input 
+                      name="email" 
+                      value={addForm.email} 
+                      onChange={handleAddFormChange} 
+                      placeholder="Email Address" 
+                      type="email"
+                      className="w-full text-[16px]" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              <div className="w-full border-b pb-4 mb-4">
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">Emergency Contact</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input 
+                    name="emergency_contact_name" 
+                    value={addForm.emergency_contact_name} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Emergency Contact Name" 
+                    className="w-full text-[16px]" 
+                  />
+                  <Input 
+                    name="emergency_contact_phone" 
+                    value={addForm.emergency_contact_phone} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Emergency Contact Phone" 
+                    className="w-full text-[16px]" 
+                  />
+                </div>
+              </div>
+
+              {/* Medical Information */}
+              <div className="w-full pb-4 mb-4">
+                <h3 className="text-lg font-semibold text-gray-700 mb-3">Medical Information</h3>
+                <div className="grid grid-cols-1 gap-3">
+                  <select 
+                    name="blood_type" 
+                    value={addForm.blood_type} 
+                    onChange={handleAddFormChange} 
+                    className="w-full text-[16px] border border-gray-300 rounded px-3 py-2"
+                  >
+                    <option value="">Select Blood Type (Optional)</option>
+                    {bloodTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                  <Input 
+                    name="allergies" 
+                    value={addForm.allergies} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Known Allergies (Optional)" 
+                    className="w-full text-[16px]" 
+                  />
+                  <textarea 
+                    name="medical_history" 
+                    value={addForm.medical_history} 
+                    onChange={handleAddFormChange} 
+                    placeholder="Medical History (Optional)" 
+                    className="w-full text-[16px] border border-gray-300 rounded px-3 py-2 min-h-[80px]"
+                    rows={3}
+                  />
+                </div>
+              </div>
               
               {addError && (
                 <div className="w-full p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center text-sm">
