@@ -367,6 +367,10 @@ export const Desktop = (): JSX.Element => {
     setShowAdminDashboard(false);
   };
 
+  const handleBackFromAdminLogin = () => {
+    setShowAdminLogin(false);
+  };
+
   // Check if admin is already logged in on component mount
   React.useEffect(() => {
     const isAdminLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
@@ -377,7 +381,7 @@ export const Desktop = (): JSX.Element => {
 
   // If showing admin login, render it instead of the main interface
   if (showAdminLogin) {
-    return <AdminLogin onLogin={handleAdminLoginSuccess} />;
+    return <AdminLogin onLogin={handleAdminLoginSuccess} onBack={handleBackFromAdminLogin} />;
   }
 
   // If showing admin dashboard, render it instead of the main interface

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 
 interface AdminLoginProps {
   onLogin: () => void;
+  onBack?: () => void;
 }
 
-export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
+export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin, onBack }) => {
   const [credentials, setCredentials] = useState({
     username: '',
     password: ''
@@ -48,6 +49,12 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
       setError('Network error. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBackClick = () => {
+    if (onBack) {
+      onBack();
     }
   };
 
@@ -110,6 +117,16 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
+
+          {onBack && (
+            <button
+              type="button"
+              onClick={handleBackClick}
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+            >
+              Back to Main Page
+            </button>
+          )}
         </form>
 
         <div className="mt-6 text-center">
