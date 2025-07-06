@@ -3,8 +3,8 @@ from datetime import datetime
 import os
 from database import (init_database, search_patients, get_all_patients, add_patient, 
                      get_patient_by_id, import_patients_from_csv, import_patients_from_json, 
-                     get_import_history)
-import sqlite3
+                     get_import_history, get_appointments_by_patient_id, create_appointment,
+                     get_all_appointments)
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -296,9 +296,6 @@ def import_history():
 def get_appointments(patient_id):
     """Get all appointments for a patient"""
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        
         # First check if patient exists
         patient = get_patient_by_id(patient_id)
         if not patient:
@@ -308,14 +305,7 @@ def get_appointments(patient_id):
             }), 404
         
         # Get appointments for the patient
-        cursor.execute(
-            "SELECT * FROM appointments WHERE patient_id = ? ORDER BY appointment_date DESC", 
-            (patient_id,)
-        )
-        results = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        appointments = [dict(zip(columns, row)) for row in results]
-        conn.close()
+        appointments = get_appointments_by_patient_id(patient_id)
         
         return jsonify({
             "success": True, 
@@ -331,7 +321,7 @@ def get_appointments(patient_id):
         }), 500
 
 @app.route('/appointments', methods=['POST'])
-def create_appointment():
+def create_appointment_route():
     """Create a new appointment for a patient"""
     try:
         data = request.get_json()
@@ -372,21 +362,26 @@ def create_appointment():
                 "message": "Invalid date format. Please use YYYY-MM-DD format."
             }), 400
         
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO appointments (patient_id, appointment_date, appointment_time, type, reason, doctor_name) VALUES (?, ?, ?, ?, ?, ?)",
-            (patient_id, appointment_date, appointment_time, appointment_type, reason, doctor_name)
+        result = create_appointment(
+            patient_id=patient_id,
+            appointment_date=appointment_date,
+            appointment_time=appointment_time,
+            appointment_type=appointment_type,
+            reason=reason,
+            doctor_name=doctor_name
         )
-        conn.commit()
-        appointment_id = cursor.lastrowid
-        conn.close()
         
-        return jsonify({
-            "success": True, 
-            "message": "Appointment created successfully",
-            "appointment_id": appointment_id
-        }), 201
+        if result['success']:
+            return jsonify({
+                "success": True, 
+                "message": "Appointment created successfully",
+                "appointment_id": result['appointment_id']
+            }), 201
+        else:
+            return jsonify({
+                "success": False, 
+                "message": f"Failed to create appointment: {result['error']}"
+            }), 500
         
     except Exception as e:
         print(f"Error creating appointment: {str(e)}")
@@ -430,27 +425,10 @@ def admin_login():
         }), 500
 
 @app.route('/admin/appointments', methods=['GET'])
-def get_all_appointments():
+def get_all_appointments_route():
     """Get all appointments with patient information for admin dashboard"""
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        
-        # Get all appointments with patient names
-        cursor.execute('''
-            SELECT 
-                a.*,
-                (p.firstname || ' ' || COALESCE(p.middlename, '') || ' ' || p.lastname || ' ' || COALESCE(p.suffix, '')) as patient_name
-            FROM appointments a
-            LEFT JOIN patients p ON a.patient_id = p.id
-            WHERE p.status = 'active'
-            ORDER BY a.appointment_date DESC
-        ''')
-        
-        results = cursor.fetchall()
-        columns = [desc[0] for desc in cursor.description]
-        appointments = [dict(zip(columns, row)) for row in results]
-        conn.close()
+        appointments = get_all_appointments()
         
         return jsonify({
             "success": True, 

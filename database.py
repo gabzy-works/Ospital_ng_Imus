@@ -1,117 +1,186 @@
-import sqlite3
-from datetime import datetime
-import os
-import csv
 import json
+import os
+from datetime import datetime
+from typing import List, Dict, Optional, Any
+
+# File paths for JSON storage
+DATA_DIR = 'data'
+PATIENTS_FILE = os.path.join(DATA_DIR, 'patients.json')
+APPOINTMENTS_FILE = os.path.join(DATA_DIR, 'appointments.json')
+IMPORTS_FILE = os.path.join(DATA_DIR, 'imports.json')
+
+def ensure_data_directory():
+    """Ensure the data directory exists"""
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+def load_json_file(filepath: str, default_data: Any = None) -> Any:
+    """Load data from a JSON file"""
+    if default_data is None:
+        default_data = []
+    
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            return default_data
+    except (json.JSONDecodeError, IOError):
+        return default_data
+
+def save_json_file(filepath: str, data: Any) -> bool:
+    """Save data to a JSON file"""
+    try:
+        ensure_data_directory()
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return True
+    except IOError:
+        return False
+
+def get_next_id(data_list: List[Dict]) -> int:
+    """Get the next available ID for a list of records"""
+    if not data_list:
+        return 1
+    return max(item.get('id', 0) for item in data_list) + 1
 
 def init_database():
-    """Initialize the patient database with tables and dummy data"""
+    """Initialize the patient database with JSON files and dummy data"""
+    ensure_data_directory()
     
-    # Create database directory if it doesn't exist
-    os.makedirs('data', exist_ok=True)
+    # Load existing data
+    patients = load_json_file(PATIENTS_FILE, [])
+    appointments = load_json_file(APPOINTMENTS_FILE, [])
+    imports = load_json_file(IMPORTS_FILE, [])
     
-    # Connect to SQLite database
-    conn = sqlite3.connect('data/patients.db')
-    cursor = conn.cursor()
-    
-    # Create patients table with enhanced fields
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            lastname TEXT NOT NULL,
-            firstname TEXT NOT NULL,
-            middlename TEXT,
-            suffix TEXT,
-            birthday DATE NOT NULL,
-            address TEXT NOT NULL,
-            phone TEXT,
-            email TEXT,
-            emergency_contact_name TEXT,
-            emergency_contact_phone TEXT,
-            medical_history TEXT,
-            allergies TEXT,
-            blood_type TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_new INTEGER DEFAULT 1,
-            status TEXT DEFAULT 'active'
-        )
-    ''')
-    
-    # Create appointments table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS appointments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patient_id INTEGER NOT NULL,
-            appointment_date DATE NOT NULL,
-            appointment_time TIME,
-            type TEXT DEFAULT 'Consultation',
-            reason TEXT,
-            status TEXT DEFAULT 'scheduled',
-            doctor_name TEXT,
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (patient_id) REFERENCES patients (id)
-        )
-    ''')
-    
-    # Create data_imports table to track imported files
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS data_imports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            filename TEXT NOT NULL,
-            import_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            records_imported INTEGER DEFAULT 0,
-            import_type TEXT DEFAULT 'csv',
-            status TEXT DEFAULT 'completed'
-        )
-    ''')
-    
-    # Check if patients table is empty (to avoid duplicate data)
-    cursor.execute('SELECT COUNT(*) FROM patients')
-    count = cursor.fetchone()[0]
-    
-    if count == 0:
-        # Insert dummy patient data with enhanced information
+    # If patients file is empty, add dummy data
+    if not patients:
         dummy_patients = [
-            (1, 'Santos', 'Maria', 'Cruz', None, '1985-03-15', '123 Rizal St., Imus, Cavite', '09171234567', 'maria.santos@email.com', 'Juan Santos', '09181234567', 'Hypertension', 'None', 'O+'),
-            (2, 'Santos', 'Shayne', 'Cruz', None, '1985-05-15', '456 Mabini St., Imus, Cavite', '09172345678', 'shayne.santos@email.com', 'Maria Santos', '09182345678', 'Diabetes Type 2', 'Penicillin', 'A+'),
-            (3, 'Garcia', 'Juan', 'Dela Cruz', 'Jr.', '1990-07-22', '789 Bonifacio Ave., Bacoor, Cavite', '09173456789', 'juan.garcia@email.com', 'Ana Garcia', '09183456789', 'None', 'Shellfish', 'B+'),
-            (4, 'Reyes', 'Ana', 'Bautista', None, '1978-11-08', '321 Aguinaldo Hwy., Dasmariñas, Cavite', '09174567890', 'ana.reyes@email.com', 'Pedro Reyes', '09184567890', 'Asthma', 'Dust', 'AB+'),
-            (5, 'Gonzales', 'Pedro', 'Martinez', 'Sr.', '1965-01-30', '654 P. Burgos St., Imus, Cavite', '09175678901', 'pedro.gonzales@email.com', 'Carmen Gonzales', '09185678901', 'Heart Disease', 'None', 'O-'),
-            (6, 'Lopez', 'Carmen', 'Villanueva', None, '1992-09-12', '987 Gen. Trias Dr., Gen. Trias, Cavite', '09176789012', 'carmen.lopez@email.com', 'Roberto Lopez', '09186789012', 'None', 'None', 'A-'),
-            (7, 'Mendoza', 'Roberto', 'Fernandez', 'III', '1988-05-18', '159 Molino Blvd., Bacoor, Cavite', '09177890123', 'roberto.mendoza@email.com', 'Luz Mendoza', '09187890123', 'Migraine', 'Aspirin', 'B-'),
-            (8, 'Torres', 'Luz', 'Aquino', None, '1975-12-03', '753 Salitran Rd., Dasmariñas, Cavite', '09178901234', 'luz.torres@email.com', 'Miguel Torres', '09188901234', 'Arthritis', 'None', 'AB-'),
-            (9, 'Flores', 'Miguel', 'Ramos', 'Jr.', '1983-08-25', '852 Palico Rd., Imus, Cavite', '09179012345', 'miguel.flores@email.com', 'Rosa Flores', '09189012345', 'None', 'Latex', 'O+'),
-            (10, 'Morales', 'Rosa', 'Castillo', None, '1995-04-07', '951 Anabu Rd., Imus, Cavite', '09170123456', 'rosa.morales@email.com', 'Carlos Morales', '09180123456', 'None', 'None', 'A+'),
-            (11, 'Rivera', 'Carlos', 'Jimenez', None, '1970-10-14', '357 Tanzang Luma, Imus, Cavite', '09171234560', 'carlos.rivera@email.com', 'Ana Rivera', '09181234560', 'High Blood Pressure', 'Iodine', 'B+')
+            {
+                'id': 1, 'lastname': 'Santos', 'firstname': 'Maria', 'middlename': 'Cruz', 'suffix': None,
+                'birthday': '1985-03-15', 'address': '123 Rizal St., Imus, Cavite', 'phone': '09171234567',
+                'email': 'maria.santos@email.com', 'emergency_contact_name': 'Juan Santos',
+                'emergency_contact_phone': '09181234567', 'medical_history': 'Hypertension',
+                'allergies': 'None', 'blood_type': 'O+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 2, 'lastname': 'Santos', 'firstname': 'Shayne', 'middlename': 'Cruz', 'suffix': None,
+                'birthday': '1985-05-15', 'address': '456 Mabini St., Imus, Cavite', 'phone': '09172345678',
+                'email': 'shayne.santos@email.com', 'emergency_contact_name': 'Maria Santos',
+                'emergency_contact_phone': '09182345678', 'medical_history': 'Diabetes Type 2',
+                'allergies': 'Penicillin', 'blood_type': 'A+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 3, 'lastname': 'Garcia', 'firstname': 'Juan', 'middlename': 'Dela Cruz', 'suffix': 'Jr.',
+                'birthday': '1990-07-22', 'address': '789 Bonifacio Ave., Bacoor, Cavite', 'phone': '09173456789',
+                'email': 'juan.garcia@email.com', 'emergency_contact_name': 'Ana Garcia',
+                'emergency_contact_phone': '09183456789', 'medical_history': 'None',
+                'allergies': 'Shellfish', 'blood_type': 'B+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 4, 'lastname': 'Reyes', 'firstname': 'Ana', 'middlename': 'Bautista', 'suffix': None,
+                'birthday': '1978-11-08', 'address': '321 Aguinaldo Hwy., Dasmariñas, Cavite', 'phone': '09174567890',
+                'email': 'ana.reyes@email.com', 'emergency_contact_name': 'Pedro Reyes',
+                'emergency_contact_phone': '09184567890', 'medical_history': 'Asthma',
+                'allergies': 'Dust', 'blood_type': 'AB+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 5, 'lastname': 'Gonzales', 'firstname': 'Pedro', 'middlename': 'Martinez', 'suffix': 'Sr.',
+                'birthday': '1965-01-30', 'address': '654 P. Burgos St., Imus, Cavite', 'phone': '09175678901',
+                'email': 'pedro.gonzales@email.com', 'emergency_contact_name': 'Carmen Gonzales',
+                'emergency_contact_phone': '09185678901', 'medical_history': 'Heart Disease',
+                'allergies': 'None', 'blood_type': 'O-', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 6, 'lastname': 'Lopez', 'firstname': 'Carmen', 'middlename': 'Villanueva', 'suffix': None,
+                'birthday': '1992-09-12', 'address': '987 Gen. Trias Dr., Gen. Trias, Cavite', 'phone': '09176789012',
+                'email': 'carmen.lopez@email.com', 'emergency_contact_name': 'Roberto Lopez',
+                'emergency_contact_phone': '09186789012', 'medical_history': 'None',
+                'allergies': 'None', 'blood_type': 'A-', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 7, 'lastname': 'Mendoza', 'firstname': 'Roberto', 'middlename': 'Fernandez', 'suffix': 'III',
+                'birthday': '1988-05-18', 'address': '159 Molino Blvd., Bacoor, Cavite', 'phone': '09177890123',
+                'email': 'roberto.mendoza@email.com', 'emergency_contact_name': 'Luz Mendoza',
+                'emergency_contact_phone': '09187890123', 'medical_history': 'Migraine',
+                'allergies': 'Aspirin', 'blood_type': 'B-', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 8, 'lastname': 'Torres', 'firstname': 'Luz', 'middlename': 'Aquino', 'suffix': None,
+                'birthday': '1975-12-03', 'address': '753 Salitran Rd., Dasmariñas, Cavite', 'phone': '09178901234',
+                'email': 'luz.torres@email.com', 'emergency_contact_name': 'Miguel Torres',
+                'emergency_contact_phone': '09188901234', 'medical_history': 'Arthritis',
+                'allergies': 'None', 'blood_type': 'AB-', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 9, 'lastname': 'Flores', 'firstname': 'Miguel', 'middlename': 'Ramos', 'suffix': 'Jr.',
+                'birthday': '1983-08-25', 'address': '852 Palico Rd., Imus, Cavite', 'phone': '09179012345',
+                'email': 'miguel.flores@email.com', 'emergency_contact_name': 'Rosa Flores',
+                'emergency_contact_phone': '09189012345', 'medical_history': 'None',
+                'allergies': 'Latex', 'blood_type': 'O+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 10, 'lastname': 'Morales', 'firstname': 'Rosa', 'middlename': 'Castillo', 'suffix': None,
+                'birthday': '1995-04-07', 'address': '951 Anabu Rd., Imus, Cavite', 'phone': '09170123456',
+                'email': 'rosa.morales@email.com', 'emergency_contact_name': 'Carlos Morales',
+                'emergency_contact_phone': '09180123456', 'medical_history': 'None',
+                'allergies': 'None', 'blood_type': 'A+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            },
+            {
+                'id': 11, 'lastname': 'Rivera', 'firstname': 'Carlos', 'middlename': 'Jimenez', 'suffix': None,
+                'birthday': '1970-10-14', 'address': '357 Tanzang Luma, Imus, Cavite', 'phone': '09171234560',
+                'email': 'carlos.rivera@email.com', 'emergency_contact_name': 'Ana Rivera',
+                'emergency_contact_phone': '09181234560', 'medical_history': 'High Blood Pressure',
+                'allergies': 'Iodine', 'blood_type': 'B+', 'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(), 'is_new': 1, 'status': 'active'
+            }
         ]
         
-        cursor.executemany('''
-            INSERT INTO patients (id, lastname, firstname, middlename, suffix, birthday, address, phone, email, emergency_contact_name, emergency_contact_phone, medical_history, allergies, blood_type)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', dummy_patients)
-        
-        # Insert some dummy appointments
-        dummy_appointments = [
-            (1, '2025-02-15', '09:00', 'Consultation', 'Regular checkup', 'scheduled', 'Dr. Smith', ''),
-            (1, '2025-03-01', '10:30', 'Laboratory', 'Blood test', 'scheduled', 'Dr. Johnson', ''),
-            (2, '2025-02-20', '14:00', 'Follow-up', 'Post-surgery checkup', 'scheduled', 'Dr. Brown', ''),
-            (3, '2025-02-25', '11:15', 'Imaging', 'X-ray examination', 'scheduled', 'Dr. Davis', ''),
-            (4, '2025-03-05', '08:30', 'Vaccination', 'Annual flu shot', 'scheduled', 'Dr. Wilson', ''),
-        ]
-        
-        cursor.executemany('''
-            INSERT INTO appointments (patient_id, appointment_date, appointment_time, type, reason, status, doctor_name, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', dummy_appointments)
-        
+        save_json_file(PATIENTS_FILE, dummy_patients)
         print(f"Inserted {len(dummy_patients)} dummy patient records")
+    
+    # If appointments file is empty, add dummy data
+    if not appointments:
+        dummy_appointments = [
+            {
+                'id': 1, 'patient_id': 1, 'appointment_date': '2025-02-15', 'appointment_time': '09:00',
+                'type': 'Consultation', 'reason': 'Regular checkup', 'status': 'scheduled',
+                'doctor_name': 'Dr. Smith', 'notes': '', 'created_at': datetime.now().isoformat()
+            },
+            {
+                'id': 2, 'patient_id': 1, 'appointment_date': '2025-03-01', 'appointment_time': '10:30',
+                'type': 'Laboratory', 'reason': 'Blood test', 'status': 'scheduled',
+                'doctor_name': 'Dr. Johnson', 'notes': '', 'created_at': datetime.now().isoformat()
+            },
+            {
+                'id': 3, 'patient_id': 2, 'appointment_date': '2025-02-20', 'appointment_time': '14:00',
+                'type': 'Follow-up', 'reason': 'Post-surgery checkup', 'status': 'scheduled',
+                'doctor_name': 'Dr. Brown', 'notes': '', 'created_at': datetime.now().isoformat()
+            },
+            {
+                'id': 4, 'patient_id': 3, 'appointment_date': '2025-02-25', 'appointment_time': '11:15',
+                'type': 'Imaging', 'reason': 'X-ray examination', 'status': 'scheduled',
+                'doctor_name': 'Dr. Davis', 'notes': '', 'created_at': datetime.now().isoformat()
+            },
+            {
+                'id': 5, 'patient_id': 4, 'appointment_date': '2025-03-05', 'appointment_time': '08:30',
+                'type': 'Vaccination', 'reason': 'Annual flu shot', 'status': 'scheduled',
+                'doctor_name': 'Dr. Wilson', 'notes': '', 'created_at': datetime.now().isoformat()
+            }
+        ]
+        
+        save_json_file(APPOINTMENTS_FILE, dummy_appointments)
         print(f"Inserted {len(dummy_appointments)} dummy appointment records")
     
-    # Commit changes and close connection
-    conn.commit()
-    conn.close()
     print("Database initialized successfully!")
 
 def add_patient(lastname, firstname, middlename=None, suffix=None, birthday=None, address=None, 
@@ -119,37 +188,37 @@ def add_patient(lastname, firstname, middlename=None, suffix=None, birthday=None
                 medical_history=None, allergies=None, blood_type=None):
     """Add a new patient to the database with enhanced fields"""
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
+        patients = load_json_file(PATIENTS_FILE, [])
         
-        # Insert new patient
-        cursor.execute('''
-            INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address, 
-                                phone, email, emergency_contact_name, emergency_contact_phone,
-                                medical_history, allergies, blood_type, is_new)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-        ''', (lastname, firstname, middlename, suffix, birthday, address, 
-              phone, email, emergency_contact_name, emergency_contact_phone,
-              medical_history, allergies, blood_type))
+        # Create new patient record
+        new_patient = {
+            'id': get_next_id(patients),
+            'lastname': lastname,
+            'firstname': firstname,
+            'middlename': middlename,
+            'suffix': suffix,
+            'birthday': birthday,
+            'address': address,
+            'phone': phone,
+            'email': email,
+            'emergency_contact_name': emergency_contact_name,
+            'emergency_contact_phone': emergency_contact_phone,
+            'medical_history': medical_history,
+            'allergies': allergies,
+            'blood_type': blood_type,
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'is_new': 1,
+            'status': 'active'
+        }
         
-        # Get the ID of the newly inserted patient
-        patient_id = cursor.lastrowid
+        patients.append(new_patient)
         
-        # Fetch the complete patient record
-        cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
-        result = cursor.fetchone()
-        
-        if result:
-            columns = [description[0] for description in cursor.description]
-            patient = dict(zip(columns, result))
+        if save_json_file(PATIENTS_FILE, patients):
+            print(f"Successfully added patient: {firstname} {lastname} (ID: {new_patient['id']})")
+            return {'success': True, 'patient': new_patient, 'patient_id': new_patient['id']}
         else:
-            patient = None
-            
-        conn.commit()
-        conn.close()
-        
-        print(f"Successfully added patient: {firstname} {lastname} (ID: {patient_id})")
-        return {'success': True, 'patient': patient, 'patient_id': patient_id}
+            return {'success': False, 'error': 'Failed to save patient data'}
         
     except Exception as e:
         print(f"Error adding patient: {str(e)}")
@@ -157,10 +226,10 @@ def add_patient(lastname, firstname, middlename=None, suffix=None, birthday=None
 
 def import_patients_from_csv(file_path):
     """Import patients from a CSV file"""
+    import csv
+    
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        
+        patients = load_json_file(PATIENTS_FILE, [])
         imported_count = 0
         errors = []
         
@@ -198,43 +267,61 @@ def import_patients_from_csv(file_path):
                         continue
                     
                     # Check if patient already exists
-                    cursor.execute('''
-                        SELECT id FROM patients 
-                        WHERE LOWER(lastname) = LOWER(?) AND LOWER(firstname) = LOWER(?) 
-                        AND LOWER(COALESCE(middlename, '')) = LOWER(COALESCE(?, '')) 
-                        AND birthday = ?
-                    ''', (patient_data['lastname'], patient_data['firstname'], 
-                          patient_data['middlename'], patient_data['birthday']))
+                    existing = any(
+                        p['lastname'].lower() == patient_data['lastname'].lower() and
+                        p['firstname'].lower() == patient_data['firstname'].lower() and
+                        (p.get('middlename') or '').lower() == (patient_data['middlename'] or '').lower() and
+                        p['birthday'] == patient_data['birthday']
+                        for p in patients
+                    )
                     
-                    if cursor.fetchone():
+                    if existing:
                         errors.append(f"Row {row_num}: Patient already exists")
                         continue
                     
-                    # Insert patient
-                    cursor.execute('''
-                        INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address,
-                                            phone, email, emergency_contact_name, emergency_contact_phone,
-                                            medical_history, allergies, blood_type, is_new)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                    ''', (patient_data['lastname'], patient_data['firstname'], patient_data['middlename'],
-                          patient_data['suffix'], patient_data['birthday'], patient_data['address'],
-                          patient_data['phone'], patient_data['email'], patient_data['emergency_contact_name'],
-                          patient_data['emergency_contact_phone'], patient_data['medical_history'],
-                          patient_data['allergies'], patient_data['blood_type']))
+                    # Create new patient record
+                    new_patient = {
+                        'id': get_next_id(patients),
+                        'lastname': patient_data['lastname'],
+                        'firstname': patient_data['firstname'],
+                        'middlename': patient_data['middlename'],
+                        'suffix': patient_data['suffix'],
+                        'birthday': patient_data['birthday'],
+                        'address': patient_data['address'],
+                        'phone': patient_data['phone'],
+                        'email': patient_data['email'],
+                        'emergency_contact_name': patient_data['emergency_contact_name'],
+                        'emergency_contact_phone': patient_data['emergency_contact_phone'],
+                        'medical_history': patient_data['medical_history'],
+                        'allergies': patient_data['allergies'],
+                        'blood_type': patient_data['blood_type'],
+                        'created_at': datetime.now().isoformat(),
+                        'updated_at': datetime.now().isoformat(),
+                        'is_new': 0,
+                        'status': 'active'
+                    }
                     
+                    patients.append(new_patient)
                     imported_count += 1
                     
                 except Exception as e:
                     errors.append(f"Row {row_num}: {str(e)}")
         
-        # Record the import
-        cursor.execute('''
-            INSERT INTO data_imports (filename, records_imported, import_type)
-            VALUES (?, ?, 'csv')
-        ''', (os.path.basename(file_path), imported_count))
+        # Save updated patients data
+        save_json_file(PATIENTS_FILE, patients)
         
-        conn.commit()
-        conn.close()
+        # Record the import
+        imports = load_json_file(IMPORTS_FILE, [])
+        import_record = {
+            'id': get_next_id(imports),
+            'filename': os.path.basename(file_path),
+            'import_date': datetime.now().isoformat(),
+            'records_imported': imported_count,
+            'import_type': 'csv',
+            'status': 'completed'
+        }
+        imports.append(import_record)
+        save_json_file(IMPORTS_FILE, imports)
         
         return {
             'success': True,
@@ -254,9 +341,7 @@ def import_patients_from_csv(file_path):
 def import_patients_from_json(file_path):
     """Import patients from a JSON file"""
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        
+        patients = load_json_file(PATIENTS_FILE, [])
         imported_count = 0
         errors = []
         
@@ -282,43 +367,61 @@ def import_patients_from_json(file_path):
                         continue
                     
                     # Check if patient already exists
-                    cursor.execute('''
-                        SELECT id FROM patients 
-                        WHERE LOWER(lastname) = LOWER(?) AND LOWER(firstname) = LOWER(?) 
-                        AND LOWER(COALESCE(middlename, '')) = LOWER(COALESCE(?, '')) 
-                        AND birthday = ?
-                    ''', (patient['lastname'], patient['firstname'], 
-                          patient.get('middlename'), patient['birthday']))
+                    existing = any(
+                        p['lastname'].lower() == patient['lastname'].lower() and
+                        p['firstname'].lower() == patient['firstname'].lower() and
+                        (p.get('middlename') or '').lower() == (patient.get('middlename') or '').lower() and
+                        p['birthday'] == patient['birthday']
+                        for p in patients
+                    )
                     
-                    if cursor.fetchone():
+                    if existing:
                         errors.append(f"Patient {index + 1}: Already exists")
                         continue
                     
-                    # Insert patient
-                    cursor.execute('''
-                        INSERT INTO patients (lastname, firstname, middlename, suffix, birthday, address,
-                                            phone, email, emergency_contact_name, emergency_contact_phone,
-                                            medical_history, allergies, blood_type, is_new)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-                    ''', (patient['lastname'], patient['firstname'], patient.get('middlename'),
-                          patient.get('suffix'), patient['birthday'], patient['address'],
-                          patient.get('phone'), patient.get('email'), patient.get('emergency_contact_name'),
-                          patient.get('emergency_contact_phone'), patient.get('medical_history'),
-                          patient.get('allergies'), patient.get('blood_type')))
+                    # Create new patient record
+                    new_patient = {
+                        'id': get_next_id(patients),
+                        'lastname': patient['lastname'],
+                        'firstname': patient['firstname'],
+                        'middlename': patient.get('middlename'),
+                        'suffix': patient.get('suffix'),
+                        'birthday': patient['birthday'],
+                        'address': patient['address'],
+                        'phone': patient.get('phone'),
+                        'email': patient.get('email'),
+                        'emergency_contact_name': patient.get('emergency_contact_name'),
+                        'emergency_contact_phone': patient.get('emergency_contact_phone'),
+                        'medical_history': patient.get('medical_history'),
+                        'allergies': patient.get('allergies'),
+                        'blood_type': patient.get('blood_type'),
+                        'created_at': datetime.now().isoformat(),
+                        'updated_at': datetime.now().isoformat(),
+                        'is_new': 0,
+                        'status': 'active'
+                    }
                     
+                    patients.append(new_patient)
                     imported_count += 1
                     
                 except Exception as e:
                     errors.append(f"Patient {index + 1}: {str(e)}")
         
-        # Record the import
-        cursor.execute('''
-            INSERT INTO data_imports (filename, records_imported, import_type)
-            VALUES (?, ?, 'json')
-        ''', (os.path.basename(file_path), imported_count))
+        # Save updated patients data
+        save_json_file(PATIENTS_FILE, patients)
         
-        conn.commit()
-        conn.close()
+        # Record the import
+        imports = load_json_file(IMPORTS_FILE, [])
+        import_record = {
+            'id': get_next_id(imports),
+            'filename': os.path.basename(file_path),
+            'import_date': datetime.now().isoformat(),
+            'records_imported': imported_count,
+            'import_type': 'json',
+            'status': 'completed'
+        }
+        imports.append(import_record)
+        save_json_file(IMPORTS_FILE, imports)
         
         return {
             'success': True,
@@ -337,82 +440,48 @@ def import_patients_from_json(file_path):
 
 def search_patients(lastname=None, firstname=None, middlename=None, suffix=None, birthday=None, address=None):
     """Search for patients based on provided criteria"""
-    conn = sqlite3.connect('data/patients.db')
-    cursor = conn.cursor()
-
-    # Build dynamic query based on provided parameters
-    query = "SELECT * FROM patients WHERE status = 'active'"
-    params = []
-
-    if lastname:
-        query += " AND LOWER(TRIM(COALESCE(lastname, ''))) = LOWER(TRIM(?))"
-        params.append(lastname)
-    if firstname:
-        query += " AND LOWER(TRIM(COALESCE(firstname, ''))) = LOWER(TRIM(?))"
-        params.append(firstname)
-    if middlename:
-        query += " AND LOWER(TRIM(COALESCE(middlename, ''))) = LOWER(TRIM(?))"
-        params.append(middlename)
-    if suffix:
-        query += " AND LOWER(TRIM(COALESCE(suffix, ''))) = LOWER(TRIM(?))"
-        params.append(suffix)
-    if birthday:
-        query += " AND TRIM(COALESCE(birthday, '')) = TRIM(?)"
-        params.append(birthday)
-    if address:
-        query += " AND LOWER(TRIM(COALESCE(address, ''))) LIKE LOWER(TRIM(?))"
-        params.append(f"%{address}%")
-
-    cursor.execute(query, params)
-    results = cursor.fetchall()
-
-    # Convert results to list of dictionaries
-    columns = [description[0] for description in cursor.description]
-    patients = []
-    for row in results:
-        patient = dict(zip(columns, row))
-        patients.append(patient)
-
-    conn.close()
-    return patients
+    patients = load_json_file(PATIENTS_FILE, [])
+    
+    # Filter active patients
+    active_patients = [p for p in patients if p.get('status') == 'active']
+    
+    # Apply search filters
+    results = []
+    for patient in active_patients:
+        match = True
+        
+        if lastname and patient.get('lastname', '').lower().strip() != lastname.lower().strip():
+            match = False
+        if firstname and patient.get('firstname', '').lower().strip() != firstname.lower().strip():
+            match = False
+        if middlename and (patient.get('middlename') or '').lower().strip() != middlename.lower().strip():
+            match = False
+        if suffix and (patient.get('suffix') or '').lower().strip() != suffix.lower().strip():
+            match = False
+        if birthday and patient.get('birthday', '').strip() != birthday.strip():
+            match = False
+        if address and address.lower().strip() not in patient.get('address', '').lower().strip():
+            match = False
+        
+        if match:
+            results.append(patient)
+    
+    return results
 
 def get_all_patients():
     """Get all active patients from the database"""
-    
-    conn = sqlite3.connect('data/patients.db')
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT * FROM patients WHERE status = 'active' ORDER BY lastname, firstname")
-    results = cursor.fetchall()
-    
-    # Convert results to list of dictionaries
-    columns = [description[0] for description in cursor.description]
-    patients = []
-    for row in results:
-        patient = dict(zip(columns, row))
-        patients.append(patient)
-    
-    conn.close()
-    return patients
+    patients = load_json_file(PATIENTS_FILE, [])
+    active_patients = [p for p in patients if p.get('status') == 'active']
+    return sorted(active_patients, key=lambda x: (x.get('lastname', ''), x.get('firstname', '')))
 
 def get_patient_by_id(patient_id):
     """Get a specific patient by ID"""
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT * FROM patients WHERE id = ? AND status = 'active'", (patient_id,))
-        result = cursor.fetchone()
-        
-        if result:
-            columns = [description[0] for description in cursor.description]
-            patient = dict(zip(columns, result))
-        else:
-            patient = None
-            
-        conn.close()
-        return patient
-        
+        patients = load_json_file(PATIENTS_FILE, [])
+        for patient in patients:
+            if patient.get('id') == patient_id and patient.get('status') == 'active':
+                return patient
+        return None
     except Exception as e:
         print(f"Error getting patient by ID: {str(e)}")
         return None
@@ -420,23 +489,82 @@ def get_patient_by_id(patient_id):
 def get_import_history():
     """Get the history of data imports"""
     try:
-        conn = sqlite3.connect('data/patients.db')
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT * FROM data_imports ORDER BY import_date DESC")
-        results = cursor.fetchall()
-        
-        columns = [description[0] for description in cursor.description]
-        imports = []
-        for row in results:
-            import_record = dict(zip(columns, row))
-            imports.append(import_record)
-        
-        conn.close()
-        return imports
-        
+        imports = load_json_file(IMPORTS_FILE, [])
+        return sorted(imports, key=lambda x: x.get('import_date', ''), reverse=True)
     except Exception as e:
         print(f"Error getting import history: {str(e)}")
+        return []
+
+def get_appointments_by_patient_id(patient_id):
+    """Get all appointments for a specific patient"""
+    try:
+        appointments = load_json_file(APPOINTMENTS_FILE, [])
+        patient_appointments = [a for a in appointments if a.get('patient_id') == patient_id]
+        return sorted(patient_appointments, key=lambda x: x.get('appointment_date', ''), reverse=True)
+    except Exception as e:
+        print(f"Error getting appointments: {str(e)}")
+        return []
+
+def create_appointment(patient_id, appointment_date, appointment_time='09:00', appointment_type='Consultation', 
+                      reason='', doctor_name=''):
+    """Create a new appointment for a patient"""
+    try:
+        appointments = load_json_file(APPOINTMENTS_FILE, [])
+        
+        new_appointment = {
+            'id': get_next_id(appointments),
+            'patient_id': patient_id,
+            'appointment_date': appointment_date,
+            'appointment_time': appointment_time,
+            'type': appointment_type,
+            'reason': reason,
+            'status': 'scheduled',
+            'doctor_name': doctor_name,
+            'notes': '',
+            'created_at': datetime.now().isoformat()
+        }
+        
+        appointments.append(new_appointment)
+        
+        if save_json_file(APPOINTMENTS_FILE, appointments):
+            return {'success': True, 'appointment_id': new_appointment['id']}
+        else:
+            return {'success': False, 'error': 'Failed to save appointment'}
+        
+    except Exception as e:
+        print(f"Error creating appointment: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
+def get_all_appointments():
+    """Get all appointments with patient information"""
+    try:
+        appointments = load_json_file(APPOINTMENTS_FILE, [])
+        patients = load_json_file(PATIENTS_FILE, [])
+        
+        # Create a patient lookup dictionary
+        patient_lookup = {p['id']: p for p in patients if p.get('status') == 'active'}
+        
+        # Add patient names to appointments
+        enriched_appointments = []
+        for appointment in appointments:
+            patient_id = appointment.get('patient_id')
+            patient = patient_lookup.get(patient_id)
+            
+            if patient:
+                appointment_copy = appointment.copy()
+                patient_name_parts = [
+                    patient.get('firstname', ''),
+                    patient.get('middlename', ''),
+                    patient.get('lastname', ''),
+                    patient.get('suffix', '')
+                ]
+                appointment_copy['patient_name'] = ' '.join(filter(None, patient_name_parts))
+                enriched_appointments.append(appointment_copy)
+        
+        return sorted(enriched_appointments, key=lambda x: x.get('appointment_date', ''), reverse=True)
+        
+    except Exception as e:
+        print(f"Error getting all appointments: {str(e)}")
         return []
 
 if __name__ == '__main__':
