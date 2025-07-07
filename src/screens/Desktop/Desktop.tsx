@@ -465,9 +465,14 @@ export const Desktop = (): JSX.Element => {
         </div>
         {/* Centered title */}
         <div className="flex-1 flex justify-center">
-          <h1 className="text-center font-sans font-black text-[#05196a] text-[44px] tracking-[0] leading-[normal] drop-shadow-lg whitespace-nowrap">
-            OSPITAL NG IMUS
-          </h1>
+          <div className="flex flex-col items-center">
+            <h1 className="text-center font-sans font-black text-[#05196a] text-[44px] tracking-[0] leading-[normal] drop-shadow-lg whitespace-nowrap">
+              OSPITAL NG IMUS
+            </h1>
+            <span style={{ fontFamily: 'Times New Roman, Times, serif', fontStyle: 'italic', fontWeight: 'bold', fontSize: '16px', color: '#05196a' }}>
+              We serve, We care
+            </span>
+          </div>
         </div>
         {/* Admin button on the right */}
         <div className="w-[300px] flex justify-end">
