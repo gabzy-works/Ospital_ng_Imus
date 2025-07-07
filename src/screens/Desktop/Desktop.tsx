@@ -222,17 +222,21 @@ export const Desktop = (): JSX.Element => {
   };
 
   const handleSetAppointment = () => {
-    if (foundPatient) {
-      setSelectedPatientForAppointment(foundPatient);
-      setShowAppointmentDashboard(true);
-      setShowFound(false); // Hide the patient ID modal
+    // Check if a patient has been found first
+    if (!foundPatient) {
+      alert("Please search for a patient first before setting an appointment.");
+      return;
     }
+    
+    setSelectedPatientForAppointment(foundPatient);
+    setShowAppointmentDashboard(true);
+    setShowFound(false); // Hide the patient ID modal if it's open
   };
 
   const handleBackFromAppointment = () => {
     setShowAppointmentDashboard(false);
     setSelectedPatientForAppointment(null);
-    setShowFound(true); // Show the patient ID modal again
+    // Don't automatically show the patient ID modal again
   };
 
   const handleAdminLogin = () => {
@@ -397,6 +401,13 @@ export const Desktop = (): JSX.Element => {
             <Button type="submit" className="flex-1 h-[50px] bg-[#05196a] rounded-[16px] shadow font-sans font-extrabold text-white text-[22px] hover:bg-[#041456] transition-colors">
               SEARCH
             </Button>
+            <Button 
+              type="button" 
+              onClick={handleSetAppointment} 
+              className="flex-1 h-[50px] bg-green-600 rounded-[16px] shadow font-sans font-extrabold text-white text-[22px] hover:bg-green-700 transition-colors"
+            >
+              SET APPOINTMENT
+            </Button>
           </div>
         </form>
       </div>
@@ -489,7 +500,6 @@ export const Desktop = (): JSX.Element => {
             </div>
             <div className="flex flex-row gap-4 mt-6 print:hidden">
               <Button onClick={handleCloseFound} className="bg-gray-400 text-white px-6 py-2 rounded-lg text-lg">Back</Button>
-              <Button onClick={handleSetAppointment} className="bg-green-700 text-white px-6 py-2 rounded-lg text-lg">Set Appointment</Button>
             </div>
           </div>
         </div>
