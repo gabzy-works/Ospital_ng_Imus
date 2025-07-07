@@ -222,13 +222,21 @@ export const Desktop = (): JSX.Element => {
   };
 
   const handleSetAppointment = () => {
-    // Check if a patient has been found first
-    if (!foundPatient) {
-      alert("Please search for a patient first before setting an appointment.");
-      return;
-    }
+    // Create a default patient object if none is found
+    const defaultPatient = {
+      id: 0,
+      lastname: "Unknown",
+      firstname: "Patient",
+      middlename: "",
+      suffix: null,
+      birthday: "1990-01-01",
+      address: "To be determined"
+    };
     
-    setSelectedPatientForAppointment(foundPatient);
+    // Use found patient if available, otherwise use default
+    const patientForAppointment = foundPatient || defaultPatient;
+    
+    setSelectedPatientForAppointment(patientForAppointment);
     setShowAppointmentDashboard(true);
     setShowFound(false); // Hide the patient ID modal if it's open
   };
