@@ -25,7 +25,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const years = Array.from({ length: 126 }, (_, i) => 2025 - i); // 1900 to 2025
+  const years = Array.from({ length: 2040 - 1900 + 1 }, (_, i) => 2040 - i); // 1900 to 2040
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month + 1, 0).getDate();

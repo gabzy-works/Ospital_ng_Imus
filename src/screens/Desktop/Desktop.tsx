@@ -36,7 +36,7 @@ export const Desktop = (): JSX.Element => {
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
-  const years = Array.from({ length: 2025 - 1900 + 1 }, (_, i) => String(1900 + i));
+  const years = Array.from({ length: 2040 - 1900 + 1 }, (_, i) => String(1900 + i));
 
   // Form field data for mapping
   const formFields = [
@@ -447,7 +447,7 @@ export const Desktop = (): JSX.Element => {
             {/* ID Card Design */}
             <div
               ref={idCardRef}
-              className="w-[520px] h-[320px] bg-gradient-to-r from-green-400 via-blue-500 to-blue-800 rounded-xl flex flex-col items-center justify-between p-8 relative shadow-2xl border-4 border-white print-id-card-container"
+              className="w-[700px] h-[430px] bg-white rounded-xl flex flex-col items-center justify-between p-8 relative shadow-2xl border-4 border-white print-id-card-container"
               style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
             >
               {/* Hospital logo and title */}
@@ -455,55 +455,34 @@ export const Desktop = (): JSX.Element => {
                 <img
                   src="/Ph_seal_Imus.png"
                   alt="Ph seal imus"
-                  className="w-12 h-12 object-cover rounded-full border-2 border-white bg-white"
+                  className="w-20 h-20 object-cover rounded-full border-2 border-white bg-white -mt-4"
                 />
                 <div className="flex-1 text-center">
-                  <span className="text-white font-bold text-lg tracking-wide drop-shadow">PATIENT ID</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-xs font-semibold text-black">Republic of the Philippines</span>
+                    <span className="text-xs font-semibold text-black">Province of Cavite</span>
+                    <span className="text-xs font-semibold text-black">City of Imus</span>
+                    <span className="text-lg font-bold text-red-600">OSPITAL NG IMUS</span>
+                    <span className="text-xs font-semibold text-black">Pedro Reyes St., Malagasang 1-G</span>
+                    <span className="text-base font-bold text-black">PATIENT INFORMATION</span>
+                  </div>
                 </div>
                 <img
                   src="/20250625_092019.jpg"
                   alt="Hospital logo"
-                  className="w-12 h-12 object-cover rounded-full border-2 border-white bg-white"
+                  className="w-20 h-20 object-cover rounded-full border-2 border-white bg-white -mt-4"
                 />
               </div>
-              {/* Patient photo and info - centered info */}
-              <div className="flex flex-row items-center w-full gap-8 justify-center flex-1">
-                <div className="flex flex-col items-center gap-2">
-                  <img
-                    src={uploadedIdImage || "/Patient ID sample.png"}
-                    alt="Patient ID"
-                    className="w-24 h-24 object-cover rounded-lg border-2 border-white bg-white"
-                  />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleIdImageUpload}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleUploadButtonClick}
-                    className="mt-1 px-3 py-1 bg-white bg-opacity-80 text-blue-800 text-xs font-semibold rounded shadow hover:bg-opacity-100 transition print:hidden"
-                  >
-                    Upload Photo
-                  </button>
+              {/* Patient info only, photo removed */}
+              <div className="flex flex-col items-center justify-center text-[#05196a] text-base font-medium gap-2 text-center self-center my-auto">
+                <div className="flex flex-col items-center w-full">
+                  <div><span className="font-bold">Lastname:</span> {foundPatient.lastname}</div>
+                  <div><span className="font-bold">Firstname:</span> {foundPatient.firstname}</div>
+                  <div><span className="font-bold">Middlename:</span> {foundPatient.middlename || '-'}</div>
+                  <div><span className="font-bold">Suffix:</span> {foundPatient.suffix || '-'}</div>
+                  <div><span className="font-bold">Birthday:</span> {formatBirthday(foundPatient.birthday)}</div>
+                  <div><span className="font-bold">Address:</span> {foundPatient.address}</div>
                 </div>
-                <div className="flex flex-col items-center justify-center text-white text-base font-medium gap-2 text-center self-center my-auto">
-                  <div className="flex flex-col items-center w-full">
-                    <div><span className="font-bold">Lastname:</span> {foundPatient.lastname}</div>
-                    <div><span className="font-bold">Firstname:</span> {foundPatient.firstname}</div>
-                    <div><span className="font-bold">Middlename:</span> {foundPatient.middlename || '-'}</div>
-                    <div><span className="font-bold">Suffix:</span> {foundPatient.suffix || '-'}</div>
-                    <div><span className="font-bold">Birthday:</span> {formatBirthday(foundPatient.birthday)}</div>
-                    <div><span className="font-bold">Address:</span> {foundPatient.address}</div>
-                  </div>
-                </div>
-              </div>
-              {/* ID Footer */}
-              <div className="w-full flex flex-row items-center justify-between mt-2">
-                <span className="text-xs text-white/80 font-semibold">Patient ID Card</span>
-                <span className="text-xs text-white/80 font-semibold">Valid at ONI</span>
               </div>
             </div>
             <div className="flex flex-row gap-4 mt-6 print:hidden">
