@@ -484,6 +484,12 @@ export const Desktop = (): JSX.Element => {
                   <div><span className="font-bold">Address:</span> {foundPatient.address}</div>
                 </div>
               </div>
+              {/* Motto bottom left */}
+              <div className="absolute left-8 bottom-6">
+                <span style={{ color: '#dc2626', fontFamily: 'Times New Roman, Times, serif', fontStyle: 'italic', fontWeight: 'bold', fontSize: '16px' }}>
+                  WE SERVE, WE CARE
+                </span>
+              </div>
             </div>
             <div className="flex flex-row gap-4 mt-6 print:hidden">
               <Button onClick={handleCloseFound} className="bg-gray-400 text-white px-6 py-2 rounded-lg text-lg">Back</Button>
