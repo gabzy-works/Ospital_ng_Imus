@@ -1,21 +1,17 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from datetime import datetime
 import os
-from database_mariadb import (init_database, search_patients, get_all_patients, add_patient, 
-                             get_patient_by_id, import_patients_from_csv, import_patients_from_json, 
-                             get_import_history, get_appointments_by_patient_id, create_appointment,
-                             get_all_appointments)
+from database import (init_database, search_patients, get_all_patients, add_patient, 
+                     get_patient_by_id, import_patients_from_csv, import_patients_from_json, 
+                     get_import_history, get_appointments_by_patient_id, create_appointment,
+                     get_all_appointments)
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 app = Flask(__name__)
 
 # Configuration
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'data/uploads')
+app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['UPLOAD_FOLDER'] = 'data/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Create upload directory
